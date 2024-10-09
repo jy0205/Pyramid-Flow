@@ -11,18 +11,6 @@ __pycache__/
 onnx_model/*.onnx
 onnx_model/antelope/*.onnx
 
-# data
-*.jpg
-*.jpeg
-*.png
-*.mp4
-*.mkv
-*.gif
-*.notifier
-*.pt
-*.tar
-*.zip
-
 
 logs/
 prompts/

@@ -19,7 +19,6 @@ bf16
 conda create --name pyr_flow python=3.10
 conda activate pyr_flow
 conda install numpy pandas scikit-image tqdm spacy transformers -c conda-forge
-
 pip install --upgrade pip setuptools
 
 pip install matplotlib

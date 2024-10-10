@@ -83,7 +83,7 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
         height=768,     
         width=1280,
         temp=16,                    # temp=16: 5s, temp=31: 10s
-        guidance_scale=9.0,         # The guidance for the first frame
+        guidance_scale=9.0,         # The guidance for the first frame, set it to 7 for 384p variant
         video_guidance_scale=5.0,   # The guidance for the other video latent
         output_type="pil",
         save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed

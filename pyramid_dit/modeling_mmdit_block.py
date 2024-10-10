@@ -13,7 +13,6 @@ except:
     flash_attn_func = None
     flash_attn_qkvpacked_func = None
     flash_attn_varlen_func = None
-    print("Please install flash attention")
 
 from trainer_misc import (
     is_sequence_parallel_initialized,

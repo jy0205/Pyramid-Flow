@@ -466,9 +466,18 @@ class PyramidDiTForVideoGeneration:
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         output_type: Optional[str] = "pil",
         save_memory: bool = True,
+        cpu_offloading: bool = False, # If true, reload device will be cuda.
     ):
-        device = self.device
+        device = self.device if not cpu_offloading else "cuda"
         dtype = self.dtype
+        if cpu_offloading:
+            # skip caring about the text encoder here as its about to be used anyways.
+            if str(self.dit.device) != "cpu":
+                print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                self.dit.to("cpu")
+            if str(self.vae.device) != "cpu":
+                print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                self.vae.to("cpu")
 
         assert (temp - 1) % self.frame_per_unit == 0, "The frames should be divided by frame_per unit"
 
@@ -489,8 +498,13 @@ class PyramidDiTForVideoGeneration:
         negative_prompt = negative_prompt or ""
 
         # Get the text embeddings
+        if cpu_offloading:
+            self.text_encoder.to("cuda")
         prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.text_encoder(prompt, device)
         negative_prompt_embeds, negative_prompt_attention_mask, negative_pooled_prompt_embeds = self.text_encoder(negative_prompt, device)
+        if cpu_offloading:
+            self.text_encoder.to("cpu")
+            self.dit.to("cuda")
 
         if use_linear_guidance:
             max_guidance_scale = guidance_scale
@@ -522,7 +536,7 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
 
         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        # by defalut, we needs to start from the block noise
+        # by default, we needs to start from the block noise
         for _ in range(len(self.stages)-1):
             height //= 2;width //= 2
             latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
@@ -611,7 +625,13 @@ class PyramidDiTForVideoGeneration:
         if output_type == "latent":
             image = generated_latents
         else:
+            if cpu_offloading:
+                self.dit.to("cpu")
+                self.vae.to("cuda")
             image = self.decode_latent(generated_latents, save_memory=save_memory)
+            if cpu_offloading:
+                self.vae.to("cpu")
+                # not technically necessary, but returns the pipeline to its original state
 
         return image
 

@@ -1,2 +1,2 @@
 from .modeling_loss import LPIPSWithDiscriminator
-from .modeling_casual_vae import CausalVideoVAE
+from .modeling_causal_vae import CausalVideoVAE

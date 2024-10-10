@@ -18,7 +18,7 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union
 from accelerate import Accelerator
 from diffusion_schedulers import PyramidFlowMatchEulerDiscreteScheduler
-from video_vae.modeling_casual_vae import CausalVideoVAE
+from video_vae.modeling_causal_vae import CausalVideoVAE
 
 from trainer_misc import (
     all_to_all,

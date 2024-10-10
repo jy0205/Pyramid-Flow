@@ -129,11 +129,7 @@ class AdaLayerNormZero(nn.Module):
 
     def __init__(self, embedding_dim: int, num_embeddings: Optional[int] = None):
         super().__init__()
-        if num_embeddings is not None:
-            self.emb = CombinedTimestepLabelEmbeddings(num_embeddings, embedding_dim)
-        else:
-            self.emb = None
-
+        self.emb = None
         self.silu = nn.SiLU()
         self.linear = nn.Linear(embedding_dim, 6 * embedding_dim, bias=True)
         self.norm = nn.LayerNorm(embedding_dim, elementwise_affine=False, eps=1e-6)
@@ -147,7 +143,6 @@ class AdaLayerNormZero(nn.Module):
         emb: Optional[torch.Tensor] = None,
         hidden_length: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        # hidden_length: [[20, 30], [30, 40], [50, 60]]
         # x: [bs, seq_len, dim]
         if self.emb is not None:
             emb = self.emb(timestep, class_labels, hidden_dtype=hidden_dtype)

@@ -17,8 +17,11 @@ bf16
 
 ## Instructions for Gradio
 conda create --name pyr_flow python=3.10
+
 conda activate pyr_flow
+
 conda install numpy pandas scikit-image tqdm spacy transformers -c conda-forge
+
 pip install --upgrade pip setuptools
 
 pip install matplotlib
@@ -33,8 +36,11 @@ run: python tp_app.py
 
 
 * libfreetype6 libpng might need it, if yes:
+
 sudo apt-get update
+
 sudo apt-get install libfreetype6-dev libpng-dev
+
 
 
 ## News

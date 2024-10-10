@@ -2,7 +2,7 @@
 
 # ⚡️Pyramid Flow⚡️
 
-[[Paper]](https://arxiv.org) [[Project Page ✨]](https://pyramid-flow.github.io) [[Model 🤗]](https://huggingface.co/rain1011/pyramid-flow-sd3)
+[[Paper]](https://arxiv.org/abs/2410.05954) [[Project Page ✨]](https://pyramid-flow.github.io) [[Model 🤗]](https://huggingface.co/rain1011/pyramid-flow-sd3)
 
 </div>
 
@@ -26,7 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code and new model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
-* `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
+* `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 
 ## Introduction
 
@@ -58,7 +58,7 @@ torch.cuda.set_device(0)
 model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16, fp16 or fp32	
 
 model = PyramidDiTForVideoGeneration(
-    '/home/jinyang06/models/pyramid-flow',          # The downloaded checkpoint dir
+    'PATH',                                         # The downloaded checkpoint dir
     model_dtype,
     model_variant='diffusion_transformer_768p',     # 'diffusion_transformer_384p'
 )
@@ -157,7 +157,7 @@ Consider giving this repository a star and cite Pyramid Flow in your publication
 @article{jin2024pyramidal,
   title={Pyramidal Flow Matching for Efficient Video Generative Modeling},
   author={Jin, Yang and Sun, Zhicheng and Li, Ningyuan and Xu, Kun and Xu, Kun and Jiang, Hao and Zhuang, Nan and Huang, Quzhe and Song, Yang and Mu, Yadong and Lin, Zhouchen},
-  jounal={arXiv preprint arXiv:2410.XXXXX},
+  jounal={arXiv preprint arXiv:2410.05954},
   year={2024}
 }
 ```

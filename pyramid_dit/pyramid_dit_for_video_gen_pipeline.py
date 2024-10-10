@@ -308,6 +308,7 @@ class PyramidDiTForVideoGeneration:
         num_images_per_prompt: Optional[int] = 1,
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         output_type: Optional[str] = "pil",
+        save_memory: bool = True,
     ):
         device = self.device
         dtype = self.dtype
@@ -442,7 +443,7 @@ class PyramidDiTForVideoGeneration:
         if output_type == "latent":
             image = generated_latents
         else:
-            image = self.decode_latent(generated_latents)
+            image = self.decode_latent(generated_latents, save_memory=save_memory)
 
         return image
 
@@ -464,6 +465,7 @@ class PyramidDiTForVideoGeneration:
         num_images_per_prompt: Optional[int] = 1,
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         output_type: Optional[str] = "pil",
+        save_memory: bool = True,
     ):
         device = self.device
         dtype = self.dtype
@@ -609,18 +611,23 @@ class PyramidDiTForVideoGeneration:
         if output_type == "latent":
             image = generated_latents
         else:
-            image = self.decode_latent(generated_latents)
+            image = self.decode_latent(generated_latents, save_memory=save_memory)
 
         return image
 
-    def decode_latent(self, latents):
+    def decode_latent(self, latents, save_memory=True):
         if latents.shape[2] == 1:
             latents = (latents / self.vae_scale_factor) + self.vae_shift_factor
         else:
             latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
             latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
 
-        image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
+        if save_memory:
+            # reducing the tile size and temporal chunk window size
+            image = self.vae.decode(latents, temporal_chunk=True, window_size=1, tile_sample_min_size=256).sample
+        else:
+            image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
+
         image = image.float()
         image = (image / 2 + 0.5).clamp(0, 1)
         image = rearrange(image, "B C T H W -> (B T) C H W")

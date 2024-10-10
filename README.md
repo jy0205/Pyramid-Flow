@@ -85,6 +85,7 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
         guidance_scale=9.0,         # The guidance for the first frame
         video_guidance_scale=5.0,   # The guidance for the other video latent
         output_type="pil",
+        save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed
     )
 
 export_to_video(frames, "./text_to_video_sample.mp4", fps=24)
@@ -104,6 +105,7 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
         temp=16,
         video_guidance_scale=4.0,
         output_type="pil",
+        save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed
     )
 
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)

@@ -4,6 +4,7 @@ diffusers>=0.30.1
 accelerate==0.30.0
 torch==2.1.2
 torchvision==0.16.2
+numpy==1.24.4
 einops
 ftfy
 ipython

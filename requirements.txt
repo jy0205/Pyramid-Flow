@@ -1,13 +1,14 @@
-contexttimer
-decord
-diffusers>=0.30.1
-accelerate==0.30.0
+wheel
 torch==2.1.2
 torchvision==0.16.2
+transformers==4.39.3
+accelerate==0.30.0
+diffusers>=0.30.1
 numpy==1.24.4
 einops
 ftfy
 ipython
+contexttimer
 opencv-python-headless==4.10.0.84
 imageio==2.33.1
 imageio-ffmpeg==0.5.1
@@ -22,8 +23,6 @@ spacy
 streamlit
 timm==0.6.12
 tqdm
-transformers==4.39.3
-wheel
 torchmetrics
 tiktoken
 jsonlines

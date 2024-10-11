@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from einops import rearrange
 from .modeling_lpips import LPIPS
 from .modeling_discriminator import NLayerDiscriminator, NLayerDiscriminator3D, weights_init
-from IPython import embed
 
 
 class AdaptiveLossWeight:

@@ -37,7 +37,7 @@ Existing video diffusion models operate at full resolution, spending a lot of co
 
 ## Installation
 
-We recommend setting up the environment with conda. The codebase currently uses python==3.8.10 and pytorch==2.1.2, and we are actively working to support a wider range of versions.
+We recommend setting up the environment with conda. The codebase currently uses Python 3.8.10 and PyTorch 2.1.2, and we are actively working to support a wider range of versions.
 
 ```bash
 git clone https://github.com/jy0205/Pyramid-Flow
@@ -125,7 +125,7 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
-We also support CPU offloading to support inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+We also support CPU offloading to allow inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
 
 ## Usage tips
 

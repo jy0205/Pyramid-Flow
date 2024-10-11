@@ -60,9 +60,21 @@ snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_u
 
 ## Usage
 
-### 1. Inference
+### 1. Quick start with Gradio
 
-To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We further simplify it into the following two-step procedure. First, load the downloaded model:
+To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L16](https://github.com/jy0205/Pyramid-Flow/blob/931c97186ec440eb581656c5bb10193eb8808b37/tp_app.py#L16), and then run on your local machine:
+
+```bash
+python app.py
+```
+
+The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit!
+
+Or you can try it out on [Hugging Face 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow), which was created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, the online demo can only generate 25 frames (export at 8FPS or 24FPS). Please duplicate the space to generate longer videos.
+
+### 2. Inference Code
+
+Please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We further simplify it into the following two-step procedure. First, load the downloaded model:
 
 ```python
 import torch
@@ -128,10 +140,6 @@ export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
 We also support CPU offloading to allow inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
-
-### 2. Gradio Inference
-
-TODO
 
 ## Usage tips
 

@@ -142,7 +142,7 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             timesteps = np.linspace(
                 timestep_max, timestep_min, training_steps + 1,
             )
-            self.timesteps_per_stage[i_s] = torch.from_numpy(timesteps[:-1])
+            self.timesteps_per_stage[i_s] = timesteps[:-1] if isinstance(timesteps, torch.Tensor) else torch.from_numpy(timesteps[:-1])
             stage_sigmas = np.linspace(
                 1, 0, training_steps + 1,
             )

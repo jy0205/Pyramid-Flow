@@ -70,7 +70,7 @@ python app.py
 
 The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit!
 
-Or you can try it out on [Hugging Face 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow), which was created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, this online demo can only generate 25 frames (export at 8FPS or 24FPS). Duplicate the space to generate longer videos.
+Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, this online demo can only generate 25 frames (export at 8FPS or 24FPS). Duplicate the space to generate longer videos.
 
 ### 2. Inference Code
 

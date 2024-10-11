@@ -8,18 +8,40 @@
 
 This is the official repository for Pyramid Flow, a training-efficient **Autoregressive Video Generation** method based on **Flow Matching**. By training only on **open-source datasets**, it can generate high-quality 10-second videos at 768p resolution and 24 FPS, and naturally supports image-to-video generation.
 
-<table class="center" border="0" style="width: 100%; text-align: left;">
-<tr>
-  <th>10s, 768p, 24fps</th>
-  <th>5s, 768p, 24fps</th>
-  <th>Image-to-video</th>
-</tr>
-<tr>
-  <td><video src="https://github.com/user-attachments/assets/9935da83-ae56-4672-8747-0f46e90f7b2b" autoplay muted loop playsinline></video></td>
-  <td><video src="https://github.com/user-attachments/assets/3412848b-64db-4d9e-8dbf-11403f6d02c5" autoplay muted loop playsinline></video></td>
-  <td><video src="https://github.com/user-attachments/assets/3bd7251f-7b2c-4bee-951d-656fdb45f427" autoplay muted loop playsinline></video></td>
-</tr>
-</table>
+## Adding Gradio for t2v and i2v
+tp_app.py
+
+* using snap_download HF, it will automatic download models at first run at ./
+default 720p @ 10sec 
+bf16
+
+## Instructions for Gradio
+conda create --name pyr_flow python=3.10
+
+conda activate pyr_flow
+
+conda install numpy pandas scikit-image tqdm spacy transformers -c conda-forge
+
+pip install --upgrade pip setuptools
+
+pip install matplotlib
+
+conda install pytorch torchvision torchaudio -c pytorch
+
+pip install -r requirements.txt
+
+pip install gradio
+
+run: python tp_app.py
+
+
+* libfreetype6 libpng might need it, if yes:
+
+sudo apt-get update
+
+sudo apt-get install libfreetype6-dev libpng-dev
+
+
 
 ## News
 

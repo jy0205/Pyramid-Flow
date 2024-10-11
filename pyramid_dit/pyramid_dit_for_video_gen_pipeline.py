@@ -318,9 +318,11 @@ class PyramidDiTForVideoGeneration:
             if str(self.dit.device) != "cpu":
                 print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
                 self.dit.to("cpu")
+                torch.cuda.empty_cache()
             if str(self.vae.device) != "cpu":
                 print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
                 self.vae.to("cpu")
+                torch.cuda.empty_cache()
 
         width = input_image.width
         height = input_image.height
@@ -348,6 +350,7 @@ class PyramidDiTForVideoGeneration:
         if cpu_offloading:
             self.text_encoder.to("cpu")
             self.vae.to("cuda")
+            torch.cuda.empty_cache()
 
         if use_linear_guidance:
             max_guidance_scale = guidance_scale
@@ -402,6 +405,7 @@ class PyramidDiTForVideoGeneration:
         if cpu_offloading:
             self.vae.to("cpu")
             self.dit.to("cuda")
+            torch.cuda.empty_cache()
         
         for unit_index in tqdm(range(1, num_units)):
             if use_linear_guidance:
@@ -464,9 +468,11 @@ class PyramidDiTForVideoGeneration:
             if cpu_offloading:
                 self.dit.to("cpu")
                 self.vae.to("cuda")
+                torch.cuda.empty_cache()
             image = self.decode_latent(generated_latents, save_memory=save_memory)
             if cpu_offloading:
                 self.vae.to("cpu")
+                torch.cuda.empty_cache()
                 # not technically necessary, but returns the pipeline to its original state
 
         return image
@@ -499,9 +505,11 @@ class PyramidDiTForVideoGeneration:
             if str(self.dit.device) != "cpu":
                 print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
                 self.dit.to("cpu")
+                torch.cuda.empty_cache()
             if str(self.vae.device) != "cpu":
                 print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
                 self.vae.to("cpu")
+                torch.cuda.empty_cache()
 
         assert (temp - 1) % self.frame_per_unit == 0, "The frames should be divided by frame_per unit"
 
@@ -529,6 +537,7 @@ class PyramidDiTForVideoGeneration:
         if cpu_offloading:
             self.text_encoder.to("cpu")
             self.dit.to("cuda")
+            torch.cuda.empty_cache()
 
         if use_linear_guidance:
             max_guidance_scale = guidance_scale
@@ -652,9 +661,11 @@ class PyramidDiTForVideoGeneration:
             if cpu_offloading:
                 self.dit.to("cpu")
                 self.vae.to("cuda")
+                torch.cuda.empty_cache()
             image = self.decode_latent(generated_latents, save_memory=save_memory)
             if cpu_offloading:
                 self.vae.to("cpu")
+                torch.cuda.empty_cache()
                 # not technically necessary, but returns the pipeline to its original state
 
         return image

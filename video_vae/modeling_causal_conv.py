@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from collections import deque
 from einops import rearrange
 from timm.models.layers import trunc_normal_
-from IPython import embed
 from torch import Tensor
 
 from utils import (

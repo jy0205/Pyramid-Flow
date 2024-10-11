@@ -62,7 +62,7 @@ snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_u
 
 ### 1. Quick start with Gradio
 
-To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L16](https://github.com/jy0205/Pyramid-Flow/blob/931c97186ec440eb581656c5bb10193eb8808b37/tp_app.py#L16), and then run on your local machine:
+To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L25](https://github.com/jy0205/Pyramid-Flow/blob/1ebf06ad9e5f1ebc4dca4000a3fc5a2f68c64e75/app.py#L25), and then run on your local machine:
 
 ```bash
 python app.py

@@ -15,8 +15,6 @@ packaging
 pandas
 plotly
 pre-commit
-pycocoevalcap
-pycocotools
 python-magic
 scikit-image
 sentencepiece

@@ -403,7 +403,7 @@ class PyramidDiTForVideoGeneration:
             self.vae.to("cpu")
             self.dit.to("cuda")
         
-        for unit_index in tqdm(range(1, num_units + 1)):
+        for unit_index in tqdm(range(1, num_units)):
             if use_linear_guidance:
                 self._guidance_scale = guidance_scale_list[unit_index]
                 self._video_guidance_scale = guidance_scale_list[unit_index]

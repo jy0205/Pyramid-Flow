@@ -21,7 +21,6 @@ from .modeling_enc_dec import (
     CausalVaeDecoder, CausalVaeEncoder,
 )
 from .modeling_causal_conv import CausalConv3d
-from IPython import embed
 
 from utils import (
     is_context_parallel_initialized,

@@ -9,7 +9,6 @@ from diffusers.models.modeling_utils import ModelMixin
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.utils import is_torch_version
 from typing import Any, Callable, Dict, List, Optional, Union
-from tqdm import tqdm
 
 from .modeling_embedding import PatchEmbed3D, CombinedTimestepConditionEmbeddings
 from .modeling_normalization import AdaLayerNormContinuous

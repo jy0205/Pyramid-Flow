@@ -35,9 +35,21 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 
 Existing video diffusion models operate at full resolution, spending a lot of computation on very noisy latents. By contrast, our method harnesses the flexibility of flow matching ([Lipman et al., 2023](https://openreview.net/forum?id=PqvMRDCJT9t); [Liu et al., 2023](https://openreview.net/forum?id=XVjTT1nw5z); [Albergo & Vanden-Eijnden, 2023](https://openreview.net/forum?id=li7qeBbCR1t)) to interpolate between latents of different resolutions and noise levels, allowing for simultaneous generation and decompression of visual content with better computational efficiency. The entire framework is end-to-end optimized with a single DiT ([Peebles & Xie, 2023](http://openaccess.thecvf.com/content/ICCV2023/html/Peebles_Scalable_Diffusion_Models_with_Transformers_ICCV_2023_paper.html)), generating high-quality 10-second videos at 768p resolution and 24 FPS within 20.7k A100 GPU training hours.
 
-## Usage
+## Installation
 
-You can directly download the model from [Huggingface](https://huggingface.co/rain1011/pyramid-flow-sd3). We provide both model checkpoints for 768p and 384p video generation. The 384p checkpoint supports 5-second video generation at 24FPS, while the 768p checkpoint supports up to 10-second video generation at 24FPS.
+We recommend setting up the environment with conda. The codebase currently uses python==3.8.10 and pytorch==2.1.2, and we are actively working to support a wider range of versions.
+
+```bash
+git clone https://github.com/jy0205/Pyramid-Flow
+cd Pyramid-Flow
+
+# create env using conda
+conda create -n pyramid python==3.8.10
+conda activate pyramid
+pip install -r requirements.txt
+```
+
+Then, you can directly download the model from [Huggingface](https://huggingface.co/rain1011/pyramid-flow-sd3). We provide both model checkpoints for 768p and 384p video generation. The 384p checkpoint supports 5-second video generation at 24FPS, while the 768p checkpoint supports up to 10-second video generation at 24FPS.
 
 ```python
 from huggingface_hub import snapshot_download
@@ -46,6 +58,7 @@ model_path = 'PATH'   # The local directory to save downloaded checkpoint
 snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_use_symlinks=False, repo_type='model')
 ```
 
+## Usage
 
 To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We further simplify it into the following two-step procedure. First, load the downloaded model:
 
@@ -56,7 +69,7 @@ from pyramid_dit import PyramidDiTForVideoGeneration
 from diffusers.utils import load_image, export_to_video
 
 torch.cuda.set_device(0)
-model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16, fp16 or fp32	
+model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16 yet)
 
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
@@ -112,7 +125,9 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
-Usage tips:
+We also support CPU offloading to support inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+
+## Usage tips
 
 * The `guidance_scale` parameter controls the visual quality. We suggest using a guidance within [7, 9] for the 768p checkpoint during text-to-video generation, and 7 for the 384p checkpoint.
 * The `video_guidance_scale` parameter controls the motion. A larger value increases the dynamic degree and mitigates the autoregressive generation degradation, while a smaller value stabilizes the video.

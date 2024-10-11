@@ -15,7 +15,6 @@ import argparse
 import torch
 from torch import optim as optim
 import torch.distributed as dist
-from tensorboardX import SummaryWriter
 
 
 def is_dist_avail_and_initialized():

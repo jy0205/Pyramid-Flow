@@ -26,7 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
-* `2024.10.13`  ✨✨✨ [Multi-GPU inference](https://github.com/jy0205/Pyramid-Flow/blob/main/inference_multigpu.py) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported, enabling use with **less than 12GB** GPU memory. The [Multi-GPU inference](https://github.com/jy0205/Pyramid-Flow/blob/main/inference_multigpu.py) can save the memory usage of each GPU and greatly reduce the inference time. For example, It only needs 2.5 min to generate a 5s, 768p, 24fps video when using 4 A100 for inference (versus 5.6 min in one A100).
+* `2024.10.13`  ✨✨✨ [Multi-GPU inference](https://github.com/jy0205/Pyramid-Flow/blob/main/inference_multigpu.py) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported, allowing use with **less than 12GB** of GPU memory and great speedup on multiple GPUs (only 2.5 minutes to generate a 5s, 768p, 24fps video on 4 A100 GPUs).
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 
@@ -140,18 +140,11 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
-* CPU offloading: you can inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+We also support CPU offloading to allow inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
 
 ### 3. Multi-GPU Inference
 
-We also support several strategies for memory-efficient inference:
-
-
-* Multi-GPU inference: for users with multiple GPUs, they can leverage sequence parallel to reduce the memory burden on each GPU. We provide an inference script [here](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) and hope to get feedback on how much GPU memory it saves. Inference with multiple gpus can also greatly reduce the inference time. For example, It only needs **2.5 min** to generate a 5s, 768p, 24fps video when using 4 A100 for inference (versus 5.5 min in one A100).
-
-  > Spoiler: We did not actually use sequence parallel in our training, thanks to the efficient pyramid designs. Stay tuned for the training code.
-
-The detailed usage:
+For users with multiple GPUs, we provide an [inference script](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) that uses sequence parallelism to save memory on each GPU. It also brings a big speedup, taking only 2.5 minutes to generate a 5s, 768p, 24fps video on 4 A100 GPUs (vs. 5.5 minutes on a single A100 GPU).
 
 ```shell
 #!/bin/bash
@@ -174,6 +167,7 @@ torchrun --nproc_per_node $GPUS \
     --temp 16 \
     --sp_group_size $GPUS
 ```
+  > Spoiler: We didn't even use sequence parallelism in our training, thanks to the efficient pyramid flow designs. Stay tuned for the training code.
 
 ## Usage tips
 

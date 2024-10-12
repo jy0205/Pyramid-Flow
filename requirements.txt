@@ -19,7 +19,7 @@ pre-commit
 python-magic
 scikit-image
 sentencepiece
-spacy
+spacy==3.7.5
 streamlit
 timm==0.6.12
 tqdm

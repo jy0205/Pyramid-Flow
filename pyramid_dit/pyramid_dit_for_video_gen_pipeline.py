@@ -414,6 +414,12 @@ class PyramidDiTForVideoGeneration:
         input_image_tensor = image_transform(input_image).unsqueeze(0).unsqueeze(2)   # [b c 1 h w]
         input_image_latent = (self.vae.encode(input_image_tensor.to(device)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
+        if is_sequence_parallel_initialized():
+            # sync the image latent across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(input_image_latent, global_src_rank, group=get_sequence_parallel_group())
+
         generated_latents_list = [input_image_latent]    # The generated results
         last_generated_latents = input_image_latent
 

@@ -318,7 +318,7 @@ class PyramidDiTForVideoGeneration:
         cpu_offloading: bool = False, # If true, reload device will be cuda.
         inference_multigpu: bool = False,
     ):
-        device = self.device if not cpu_offloading else "cuda"
+        device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:
             # skip caring about the text encoder here as its about to be used anyways.
@@ -520,7 +520,7 @@ class PyramidDiTForVideoGeneration:
         cpu_offloading: bool = False, # If true, reload device will be cuda.
         inference_multigpu: bool = False,
     ):
-        device = self.device if not cpu_offloading else "cuda"
+        device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:
             # skip caring about the text encoder here as its about to be used anyways.

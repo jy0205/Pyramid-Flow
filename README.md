@@ -26,7 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
-* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 12GB** of GPU memory, with great speedup on multiple GPUs (only 2.5 minutes on 4 A100 GPUs).
+* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 12GB** of GPU memory, with great speedup on multiple GPUs.
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 

@@ -8,11 +8,13 @@
 GPUS=4 # should be 2 or 4
 VARIANT=diffusion_transformer_768p
 MODEL_PATH=PATH
+TASK=t2v    # i2v for image-to-video
 
 torchrun --nproc_per_node $GPUS \
     inference_multigpu.py \
     --model_path $MODEL_PATH \
     --variant $VARIANT \
+    --task $TASK \
     --model_dtype bf16 \
     --temp 16 \
     --sp_group_size $GPUS

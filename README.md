@@ -26,6 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
+* `2024.10.13`  ✨✨✨ [Multi-GPU inference]() and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported, enabling use with **less than 12GB** GPU memory. 
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 
@@ -62,13 +63,13 @@ snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_u
 
 ### 1. Quick start with Gradio
 
-To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L25](https://github.com/jy0205/Pyramid-Flow/blob/1ebf06ad9e5f1ebc4dca4000a3fc5a2f68c64e75/app.py#L25), and then run on your local machine:
+To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L32](https://github.com/jy0205/Pyramid-Flow/blob/main/app.py#L32), and then run on your local machine:
 
 ```bash
 python app.py
 ```
 
-The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit!
+The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit, see [#48](https://github.com/jy0205/Pyramid-Flow/pull/48) for details! 
 
 Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, this online demo can only generate 25 frames (export at 8FPS or 24FPS). Duplicate the space to generate longer videos.
 
@@ -139,7 +140,13 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
-We also support CPU offloading to allow inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+We also support several strategies for memory-efficient inference:
+
+* CPU offloading: you can inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+
+* Multi-GPU inference: for users with multiple GPUs, they can leverage sequence parallel to reduce the memory burden on each GPU. We provide an inference script [here](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) and hope to get feedback on how much GPU memory it saves.
+
+  > Spoiler: We did not actually use sequence parallel in our training, thanks to the efficient pyramid designs. Stay tuned for the training code.
 
 ## Usage tips
 

@@ -26,7 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
-* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 12GB** of GPU memory, with great speedup on multiple GPUs (2.5 minutes on 4 A100 GPUs).
+* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 12GB** of GPU memory, with great speedup on multiple GPUs (only 2.5 minutes on 4 A100 GPUs).
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 
@@ -147,8 +147,6 @@ We also support CPU offloading to allow inference with **less than 12GB** of GPU
 For users with multiple GPUs, we provide an [inference script](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) that uses sequence parallelism to save memory on each GPU. It also brings a big speedup, taking only 2.5 minutes to generate a 5s, 768p, 24fps video on 4 A100 GPUs (vs. 5.5 minutes on a single A100 GPU).
 
 ```shell
-#!/bin/bash
-
 # This scripts using 2 gpus to inference. Now only tested at 2GPUs and 4GPUs
 # You can set it to 4 to further reduce the generating time
 # Requires nproc_per_node == sp_group_size
@@ -167,7 +165,7 @@ torchrun --nproc_per_node $GPUS \
     --temp 16 \
     --sp_group_size $GPUS
 ```
-  > Spoiler: We didn't even use sequence parallelism in training, thanks to the efficient pyramid flow designs. Stay tuned for the training code.
+  > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
 
 ## Usage tips
 

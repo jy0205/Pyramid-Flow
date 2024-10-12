@@ -259,6 +259,12 @@ class PyramidDiTForVideoGeneration:
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
+
+                if is_sequence_parallel_initialized():
+                    # sync the input latent
+                    sp_group_rank = get_sequence_parallel_group_rank()
+                    global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+                    torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
                 
                 latent_model_input = past_conditions[i_s] + [latent_model_input]
 
@@ -310,6 +316,7 @@ class PyramidDiTForVideoGeneration:
         output_type: Optional[str] = "pil",
         save_memory: bool = True,
         cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
     ):
         device = self.device if not cpu_offloading else "cuda"
         dtype = self.dtype
@@ -364,6 +371,14 @@ class PyramidDiTForVideoGeneration:
             prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
+
+        if is_sequence_parallel_initialized():
+            # sync the prompt embedding across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
 
         # Create the initial random noise
         num_channels_latents = self.dit.config.in_channels
@@ -469,7 +484,7 @@ class PyramidDiTForVideoGeneration:
                 self.dit.to("cpu")
                 self.vae.to("cuda")
                 torch.cuda.empty_cache()
-            image = self.decode_latent(generated_latents, save_memory=save_memory)
+            image = self.decode_latent(generated_latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
             if cpu_offloading:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
@@ -497,6 +512,7 @@ class PyramidDiTForVideoGeneration:
         output_type: Optional[str] = "pil",
         save_memory: bool = True,
         cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
     ):
         device = self.device if not cpu_offloading else "cuda"
         dtype = self.dtype
@@ -552,6 +568,14 @@ class PyramidDiTForVideoGeneration:
             prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
+
+        if is_sequence_parallel_initialized():
+            # sync the prompt embedding across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
 
         # Create the initial random noise
         num_channels_latents = self.dit.config.in_channels
@@ -662,7 +686,7 @@ class PyramidDiTForVideoGeneration:
                 self.dit.to("cpu")
                 self.vae.to("cuda")
                 torch.cuda.empty_cache()
-            image = self.decode_latent(generated_latents, save_memory=save_memory)
+            image = self.decode_latent(generated_latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
             if cpu_offloading:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
@@ -670,7 +694,11 @@ class PyramidDiTForVideoGeneration:
 
         return image
 
-    def decode_latent(self, latents, save_memory=True):
+    def decode_latent(self, latents, save_memory=True, inference_multigpu=False):
+        # only the main process needs vae decoding
+        if inference_multigpu and get_rank() != 0:
+            return None
+
         if latents.shape[2] == 1:
             latents = (latents / self.vae_scale_factor) + self.vae_shift_factor
         else:

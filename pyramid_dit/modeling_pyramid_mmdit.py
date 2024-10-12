@@ -304,8 +304,9 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
                 if is_sequence_parallel_initialized():
                     sp_group = get_sequence_parallel_group()
                     sp_group_size = get_sequence_parallel_world_size()
-                    image_rotary_emb = [all_to_all(x_.repeat(1, 1, sp_group_size, 1, 1, 1), sp_group, sp_group_size, scatter_dim=2, gather_dim=0) for x_ in image_rotary_emb]
-                    input_ids_list = [all_to_all(input_ids.repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0) for input_ids in input_ids_list]
+                    concat_output = True if self.training else False
+                    image_rotary_emb = [all_to_all(x_.repeat(1, 1, sp_group_size, 1, 1, 1), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output) for x_ in image_rotary_emb]
+                    input_ids_list = [all_to_all(input_ids.repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output) for input_ids in input_ids_list]
 
             else:
                 image_rotary_emb = None
@@ -358,8 +359,9 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
             if is_sequence_parallel_initialized():
                 sp_group = get_sequence_parallel_group()
                 sp_group_size = get_sequence_parallel_world_size()
-                text_ids = all_to_all(text_ids.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0).squeeze(2)
-                image_ids_list = [all_to_all(image_ids_.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0).squeeze(2) for image_ids_ in image_ids_list]
+                concat_output = True if self.training else False
+                text_ids = all_to_all(text_ids.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2)
+                image_ids_list = [all_to_all(image_ids_.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2) for image_ids_ in image_ids_list]
 
             attention_mask = []
             for i_p in range(len(hidden_length)):
@@ -382,7 +384,8 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
 
         if is_sequence_parallel_initialized():
             sp_group_size = get_sequence_parallel_world_size()
-            batch_size = batch_size // sp_group_size
+            if self.training:
+                batch_size = batch_size // sp_group_size
 
         for i_p, length in enumerate(hidden_length):
             width, height, temp = widths[i_p], heights[i_p], temps[i_p]
@@ -392,6 +395,10 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
             if is_sequence_parallel_initialized():
                 sp_group = get_sequence_parallel_group()
                 sp_group_size = get_sequence_parallel_world_size()
+
+                if not self.training:
+                    hidden_states = hidden_states.repeat(sp_group_size, 1, 1)
+
                 hidden_states = all_to_all(hidden_states, sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
 
             # only the trainable token are taking part in loss computation
@@ -428,19 +435,20 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
         if is_sequence_parallel_initialized():
             sp_group = get_sequence_parallel_group()
             sp_group_size = get_sequence_parallel_world_size()
+            concat_output = True if self.training else False
             
             # sync the input hidden states
             batch_hidden_states = []
             for i_p, hidden_states_ in enumerate(hidden_states):
                 assert hidden_states_.shape[1] % sp_group_size == 0, "The sequence length should be divided by sequence parallel size"
-                hidden_states_ = all_to_all(hidden_states_, sp_group, sp_group_size, scatter_dim=1, gather_dim=0)
+                hidden_states_ = all_to_all(hidden_states_, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
                 hidden_length[i_p] = hidden_length[i_p] // sp_group_size
                 batch_hidden_states.append(hidden_states_)
 
             # sync the encoder hidden states
             hidden_states = torch.cat(batch_hidden_states, dim=1)
-            encoder_hidden_states = all_to_all(encoder_hidden_states, sp_group, sp_group_size, scatter_dim=1, gather_dim=0)
-            temb = all_to_all(temb.unsqueeze(1).repeat(1, sp_group_size, 1), sp_group, sp_group_size, scatter_dim=1, gather_dim=0)
+            encoder_hidden_states = all_to_all(encoder_hidden_states, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
+            temb = all_to_all(temb.unsqueeze(1).repeat(1, sp_group_size, 1), sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
             temb = temb.squeeze(1)
         else:
             hidden_states = torch.cat(hidden_states, dim=1)

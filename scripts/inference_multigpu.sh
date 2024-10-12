@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# This scripts using 2 gpus to inference. Now only tested at 2GPUs and 4GPUs
+# You can set it to 4 to further reduce the generating time
+# Requires nproc_per_node == sp_group_size
+# Replace the model_path to your downloaded ckpt dir
+
+GPUS=4 # should be 2 or 4
+VARIANT=diffusion_transformer_768p
+MODEL_PATH=PATH
+
+torchrun --nproc_per_node $GPUS \
+    inference_multigpu.py \
+    --model_path $MODEL_PATH \
+    --variant $VARIANT \
+    --model_dtype bf16 \
+    --temp 16 \
+    --sp_group_size $GPUS

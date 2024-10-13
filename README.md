@@ -26,7 +26,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 * `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
   
   > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
-* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 12GB** of GPU memory, with great speedup on multiple GPUs.
+* `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [(Sequential)](https://github.com/jy0205/Pyramid-Flow/pull/75) [CPU offloading](https://github.com/jy0205/Pyramid-Flow/pull/23) are supported. Use it with **less than 8GB** of GPU memory, with great speedup on multiple GPUs.
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
 
@@ -63,7 +63,7 @@ snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_u
 
 ### 1. Quick start with Gradio
 
-To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L32]([https://github.com/jy0205/Pyramid-Flow/blob/main/app.py#L32](https://github.com/jy0205/Pyramid-Flow/blob/dc07dbf9594d6f81ce8e382ecf70e16dbda252c0/app.py#L32)), and then run on your local machine:
+To get started, first install [Gradio](https://www.gradio.app/guides/quickstart), set your model path at [#L32](https://github.com/jy0205/Pyramid-Flow/blob/dc07dbf9594d6f81ce8e382ecf70e16dbda252c0/app.py#L32), and then run on your local machine:
 
 ```bash
 python app.py
@@ -144,7 +144,11 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
 export_to_video(frames, "./image_to_video_sample.mp4", fps=24)
 ```
 
-We also support CPU offloading to allow inference with **less than 12GB** of GPU memory by adding a `cpu_offloading=True` parameter. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+We also support two types of CPU offloading to allow use with limited GPU memory. Note that they may sacrifice efficiency.
+* Adding a `cpu_offloading=True` parameter to the generate function allows inference with **less than 12GB** of GPU memory. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
+* Calling `model.enable_sequential_cpu_offload()` before adding the parameter allows inference with **less than 8GB** of GPU memory. This feature was contributed by [@rodjjo](https://github.com/rodjjo), see [#75](https://github.com/jy0205/Pyramid-Flow/pull/75) for details.
+
+
 
 ### 3. Multi-GPU Inference
 
@@ -154,7 +158,7 @@ For users with multiple GPUs, we provide an [inference script](https://github.co
 CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 ```
 
-It currently supports 2 or 4 GPUs, with more configurations available in the original script. You can also launch a multi-GPU Gradio demo created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
+It currently supports 2 or 4 GPUs, with more configurations available in the original script. You can also launch a [multi-GPU Gradio demo](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/app_multigpu_engine.sh) created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
 
   > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
 

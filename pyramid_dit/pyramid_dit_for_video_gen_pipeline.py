@@ -504,7 +504,8 @@ class PyramidDiTForVideoGeneration:
             image = generated_latents
         else:
             if cpu_offloading:
-                self.dit.to("cpu")
+                if not self.sequential_offload_enabled:
+                    self.dit.to("cpu")
                 self.vae.to("cuda")
                 torch.cuda.empty_cache()
             image = self.decode_latent(generated_latents, save_memory=save_memory, inference_multigpu=inference_multigpu)

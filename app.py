@@ -17,6 +17,7 @@ model_cache_lock = threading.Lock()
 
 # Configuration
 model_repo = "rain1011/pyramid-flow-sd3"  # Replace with the actual model repository on Hugging Face
+model_dtype = "bf16"                      # Support bf16 and fp32
 variants = {
     'high': 'diffusion_transformer_768p',  # For high-resolution version
     'low': 'diffusion_transformer_384p'    # For low-resolution version
@@ -26,6 +27,7 @@ width_high = 1280
 height_high = 768
 width_low = 640
 height_low = 384
+cpu_offloading = True  # enable cpu_offloading by default
 
 # Get the current working directory and create a folder to store the model
 current_directory = os.getcwd()
@@ -82,8 +84,10 @@ def initialize_model(variant):
         print(f"[ERROR] config.json not found in '{os.path.join(model_path, variant_dir)}'.")
         raise FileNotFoundError(f"config.json not found in '{os.path.join(model_path, variant_dir)}'.")
 
-    model_dtype = "bf16"
-    torch_dtype_selected = torch.bfloat16
+    if model_dtype == "bf16":
+        torch_dtype_selected = torch.bfloat16
+    else:
+        torch_dtype_selected = torch.float32
 
     # Initialize the model
     try:
@@ -91,7 +95,7 @@ def initialize_model(variant):
             base_path,                # Pass the base model path
             model_dtype=model_dtype,  # Use bf16
             model_variant=variant_dir,  # Pass the variant directory name
-            cpu_offloading=True,      # Enable CPU offloading
+            cpu_offloading=cpu_offloading,  # Pass the CPU offloading flag
         )
 
         # Always enable tiling for the VAE
@@ -101,6 +105,11 @@ def initialize_model(variant):
         # The components will be moved to the appropriate devices automatically
         if torch.cuda.is_available():
             torch.cuda.set_device(0)
+            # Manual device replacement when not using CPU offloading
+            if not cpu_offloading:
+                model.vae.to("cuda")
+                model.dit.to("cuda")
+                model.text_encoder.to("cuda")
         else:
             print("[WARNING] CUDA is not available. Proceeding without GPU.")
 
@@ -168,7 +177,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
                 guidance_scale=guidance_scale,
                 video_guidance_scale=video_guidance_scale,
                 output_type="pil",
-                cpu_offloading=True,
+                cpu_offloading=cpu_offloading,
                 save_memory=True,
             )
         print("[INFO] Text-to-video generation completed.")
@@ -216,7 +225,7 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
                 temp=temp,
                 video_guidance_scale=video_guidance_scale,
                 output_type="pil",
-                cpu_offloading=True,
+                cpu_offloading=cpu_offloading,
                 save_memory=True,
             )
         print("[INFO] Image-to-video generation completed.")

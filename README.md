@@ -144,27 +144,14 @@ We also support CPU offloading to allow inference with **less than 12GB** of GPU
 
 ### 3. Multi-GPU Inference
 
-For users with multiple GPUs, we provide an [inference script](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) that uses sequence parallelism to save memory on each GPU. It also brings a big speedup, taking only 2.5 minutes to generate a 5s, 768p, 24fps video on 4 A100 GPUs (vs. 5.5 minutes on a single A100 GPU).
+For users with multiple GPUs, we provide an [inference script](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/inference_multigpu.sh) that uses sequence parallelism to save memory on each GPU. This also brings a big speedup, taking only 2.5 minutes to generate a 5s, 768p, 24fps video on 4 A100 GPUs (vs. 5.5 minutes on a single A100 GPU). Run it on 2 GPUs with the following command:
 
-```shell
-# This scripts using 2 gpus to inference. Now only tested at 2GPUs and 4GPUs
-# You can set it to 4 to further reduce the generating time
-# Requires nproc_per_node == sp_group_size
-
-GPUS=4 # should be 2 or 4
-VARIANT=diffusion_transformer_768p   # diffusion_transformer_384p
-MODEL_PATH=PATH  # Replace the model_path to your downloaded ckpt dir
-TASK=t2v    # i2v for image-to-video
-
-torchrun --nproc_per_node $GPUS \
-    inference_multigpu.py \
-    --model_path $MODEL_PATH \
-    --variant $VARIANT \
-    --task $TASK \
-    --model_dtype bf16 \
-    --temp 16 \
-    --sp_group_size $GPUS
+```bash
+CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 ```
+
+It currently supports 2 or 4 GPUs, see the original script for more configurations.
+
   > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
 
 ## Usage tips

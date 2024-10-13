@@ -16,7 +16,7 @@ from tqdm import tqdm
 from torchvision import transforms
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union
-from accelerate import Accelerator
+from accelerate import Accelerator, cpu_offload
 from diffusion_schedulers import PyramidFlowMatchEulerDiscreteScheduler
 from video_vae.modeling_causal_vae import CausalVideoVAE
 

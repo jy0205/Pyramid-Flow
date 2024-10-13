@@ -201,6 +201,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
 
 # Function to generate image-to-video
 def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolution, progress=gr.Progress()):
+    progress(0, desc="Loading model")
     print("[DEBUG] generate_image_to_video called.")
     variant = '768p' if resolution == "768p" else '384p'
     height = height_high if resolution == "768p" else height_low

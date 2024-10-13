@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:
-# ./app_multigpu_engine.sh GPUS VARIANT MODEL_PATH TASK TEMP GUIDANCE_SCALE VIDEO_GUIDANCE_SCALE RESOLUTION OUTPUT_PATH [IMAGE_PATH] PROMPT
+# ./scripts/app_multigpu_engine.sh GPUS VARIANT MODEL_PATH TASK TEMP GUIDANCE_SCALE VIDEO_GUIDANCE_SCALE RESOLUTION OUTPUT_PATH [IMAGE_PATH] PROMPT
 
 GPUS=$1
 VARIANT=$2
@@ -27,8 +27,19 @@ else
     exit 1
 fi
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get the project root directory (parent directory of scripts)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Set PYTHONPATH to include the project root directory
+export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
+# Adjust the path to app_multigpu_engine.py
+PYTHON_SCRIPT="$SCRIPT_DIR/app_multigpu_engine.py"
+
 torchrun --nproc_per_node="$GPUS" \
-    app_multigpu_engine.py \
+    "$PYTHON_SCRIPT" \
     --model_path "$MODEL_PATH" \
     --variant "$VARIANT" \
     --task "$TASK" \

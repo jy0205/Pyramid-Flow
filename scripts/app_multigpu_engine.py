@@ -1,17 +1,24 @@
 import os
-import torch
 import sys
+import torch
 import argparse
+from PIL import Image
 from diffusers.utils import export_to_video
+
+# Add the project root directory to sys.path
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from pyramid_dit import PyramidDiTForVideoGeneration
 from trainer_misc import init_distributed_mode, init_sequence_parallel_group
-from PIL import Image
 
 def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process Script', add_help=False)
     parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16")
     parser.add_argument('--model_path', required=True, type=str, help='Path to the downloaded checkpoint directory')
-    parser.add_argument('--variant', default='diffusion_transformer_768p', type=str,)
+    parser.add_argument('--variant', default='diffusion_transformer_768p', type=str)
     parser.add_argument('--task', default='t2v', type=str, choices=['i2v', 't2v'])
     parser.add_argument('--temp', default=16, type=int, help='The generated latent num, num_frames = temp * 8 + 1')
     parser.add_argument('--sp_group_size', default=2, type=int, help="The number of GPUs used for inference, should be 2 or 4")
@@ -27,7 +34,7 @@ def get_args():
 def main():
     args = get_args()
 
-    # setup DDP
+    # Setup DDP
     init_distributed_mode(args)
 
     assert args.world_size == args.sp_group_size, "The sequence parallel size should match DDP world size"
@@ -68,7 +75,7 @@ def main():
     try:
         if args.task == 't2v':
             prompt = args.prompt
-            with torch.no_grad(), torch.cuda.amp.autocast(enabled=True if model_dtype != 'fp32' else False, dtype=torch_dtype):
+            with torch.no_grad(), torch.cuda.amp.autocast(enabled=(model_dtype != 'fp32'), dtype=torch_dtype):
                 frames = model.generate(
                     prompt=prompt,
                     num_inference_steps=[20, 20, 20],
@@ -94,7 +101,7 @@ def main():
 
             prompt = args.prompt
 
-            with torch.no_grad(), torch.cuda.amp.autocast(enabled=True if model_dtype != 'fp32' else False, dtype=torch_dtype):
+            with torch.no_grad(), torch.cuda.amp.autocast(enabled=(model_dtype != 'fp32'), dtype=torch_dtype):
                 frames = model.generate_i2v(
                     prompt=prompt,
                     input_image=image,

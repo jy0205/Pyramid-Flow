@@ -151,11 +151,15 @@ def resize_crop_image(img: PIL.Image.Image, tgt_width, tgt_height):
     return img
 
 # Function to generate text-to-video
-def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, resolution):
+def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, resolution, progress=gr.Progress()):
+    progress(0, desc="Loading model")
     print("[DEBUG] generate_text_to_video called.")
     variant = '768p' if resolution == "768p" else '384p'
     height = height_high if resolution == "768p" else height_low
     width = width_high if resolution == "768p" else width_low
+
+    def progress_callback(i, m):
+        progress(i/m)
 
     # Initialize model based on user options using cached function
     try:
@@ -179,6 +183,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
                 output_type="pil",
                 cpu_offloading=cpu_offloading,
                 save_memory=True,
+                callback=progress_callback,
             )
         print("[INFO] Text-to-video generation completed.")
     except Exception as e:
@@ -195,7 +200,8 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
     return video_path
 
 # Function to generate image-to-video
-def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolution):
+def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolution, progress=gr.Progress()):
+    progress(0, desc="Loading model")
     print("[DEBUG] generate_image_to_video called.")
     variant = '768p' if resolution == "768p" else '384p'
     height = height_high if resolution == "768p" else height_low
@@ -207,6 +213,9 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
     except Exception as e:
         print(f"[ERROR] Error processing image: {e}")
         return f"Error processing image: {e}"
+
+    def progress_callback(i, m):
+        progress(i/m)
 
     # Initialize model based on user options using cached function
     try:
@@ -227,6 +236,7 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
                 output_type="pil",
                 cpu_offloading=cpu_offloading,
                 save_memory=True,
+                callback=progress_callback,
             )
         print("[INFO] Image-to-video generation completed.")
     except Exception as e:

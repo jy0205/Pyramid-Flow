@@ -92,10 +92,14 @@ model = PyramidDiTForVideoGeneration(
     model_variant='diffusion_transformer_768p',     # 'diffusion_transformer_384p'
 )
 
-model.vae.to("cuda")
-model.dit.to("cuda")
-model.text_encoder.to("cuda")
+
 model.vae.enable_tiling()
+# model.vae.to("cuda")
+# model.dit.to("cuda")
+# model.text_encoder.to("cuda")
+
+# if you're not using sequential offloading bellow uncomment the lines above ^
+model.enable_sequential_cpu_offload()
 ```
 
 Then, you can try text-to-video generation on your own prompts:

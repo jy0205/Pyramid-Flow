@@ -754,11 +754,11 @@ class PyramidDiTForVideoGeneration:
         else:
             image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
 
-        image = image.float()
-        image = (image / 2 + 0.5).clamp(0, 1)
-        image = rearrange(image, "B C T H W -> (B T) C H W")
-        image = image.cpu().permute(0, 2, 3, 1).numpy()
+        image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
+        image = rearrange(image, "B C T H W -> (B T) H W C")
+        image = image.cpu().numpy()
         image = self.numpy_to_pil(image)
+        
         return image
 
     @staticmethod
@@ -768,7 +768,7 @@ class PyramidDiTForVideoGeneration:
         """
         if images.ndim == 3:
             images = images[None, ...]
-        images = (images * 255).round().astype("uint8")
+        
         if images.shape[-1] == 1:
             # special case for grayscale (single channel) images
             pil_images = [Image.fromarray(image.squeeze(), mode="L") for image in images]

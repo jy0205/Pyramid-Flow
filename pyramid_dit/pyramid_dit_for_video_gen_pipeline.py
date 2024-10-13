@@ -1,5 +1,6 @@
 import torch
 import os
+import gc
 import sys
 import torch.nn as nn
 import torch.nn.functional as F
@@ -317,6 +318,7 @@ class PyramidDiTForVideoGeneration:
         save_memory: bool = True,
         cpu_offloading: bool = False, # If true, reload device will be cuda.
         inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
     ):
         device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
@@ -429,6 +431,12 @@ class PyramidDiTForVideoGeneration:
             torch.cuda.empty_cache()
         
         for unit_index in tqdm(range(1, num_units)):
+            gc.collect()
+            torch.cuda.empty_cache()
+            
+            if callback:
+                callback(unit_index, num_units)
+        
             if use_linear_guidance:
                 self._guidance_scale = guidance_scale_list[unit_index]
                 self._video_guidance_scale = guidance_scale_list[unit_index]
@@ -519,6 +527,7 @@ class PyramidDiTForVideoGeneration:
         save_memory: bool = True,
         cpu_offloading: bool = False, # If true, reload device will be cuda.
         inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
     ):
         device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
@@ -613,6 +622,12 @@ class PyramidDiTForVideoGeneration:
         last_generated_latents = None
 
         for unit_index in tqdm(range(num_units)):
+            gc.collect()
+            torch.cuda.empty_cache()
+            
+            if callback:
+                callback(unit_index, num_units)
+            
             if use_linear_guidance:
                 self._guidance_scale = guidance_scale_list[unit_index]
                 self._video_guidance_scale = guidance_scale_list[unit_index]

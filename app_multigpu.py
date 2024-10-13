@@ -14,7 +14,7 @@ def run_inference_multigpu(gpus, variant, model_path, temp, guidance_scale, vide
         output_video = os.path.join(tmpdir, f"{uuid.uuid4()}_output.mp4")
         
         # Path to the external shell script
-        script_path = "./app_multigpu_engine.sh"  # Updated script name
+        script_path = "./scripts/app_multigpu_engine.sh"  # Updated script path
 
         # Prepare the command
         cmd = [
@@ -141,4 +141,3 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
 
 # Launch Gradio app
 demo.launch(share=True)
-

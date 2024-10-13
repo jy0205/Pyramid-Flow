@@ -69,7 +69,7 @@ To get started, first install [Gradio](https://www.gradio.app/guides/quickstart)
 python app.py
 ```
 
-The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit, see [#48](https://github.com/jy0205/Pyramid-Flow/pull/48) for details! 
+The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github.com/tpc2233) the commit, see [#48](https://github.com/jy0205/Pyramid-Flow/pull/48) for details.
 
 Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, this online demo can only generate 25 frames (export at 8FPS or 24FPS). Duplicate the space to generate longer videos.
 
@@ -150,7 +150,7 @@ For users with multiple GPUs, we provide an [inference script](https://github.co
 CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 ```
 
-It currently supports 2 or 4 GPUs, see the original script for more configurations.
+It currently supports 2 or 4 GPUs, see the original script for more configurations. You can also launch a multi-GPU gradio app created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
 
   > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
 

@@ -333,6 +333,9 @@ class PyramidDiTForVideoGeneration:
         inference_multigpu: bool = False,
         callback: Optional[Callable[[int, int, Dict], None]] = None,
     ):
+        if self.sequential_offload_enabled and not cpu_offloading:
+            print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
+            cpu_offloading=True
         device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:
@@ -547,6 +550,9 @@ class PyramidDiTForVideoGeneration:
         inference_multigpu: bool = False,
         callback: Optional[Callable[[int, int, Dict], None]] = None,
     ):
+        if self.sequential_offload_enabled and not cpu_offloading:
+            print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
+            cpu_offloading=True
         device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:

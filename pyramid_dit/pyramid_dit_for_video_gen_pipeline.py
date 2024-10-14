@@ -673,9 +673,6 @@ class PyramidDiTForVideoGeneration:
         num_units = 1 + (temp - 1) // self.frame_per_unit
         stages = self.stages
 
-        generated_latents_list = []    # The generated results
-        last_generated_latents = None
-
         for unit_index in tqdm(range(num_units)):
             gc.collect()
             torch.cuda.empty_cache()
@@ -704,10 +701,19 @@ class PyramidDiTForVideoGeneration:
                     generator,
                     is_first_frame=True,
                 )
+                
+                #allocate the entire tensor at the first step to avoid the list concatenation later:
+                generated_latents = torch.empty(
+                    (batch_size, num_channels_latents, num_units, intermed_latents[-1].shape[3], intermed_latents[-1].shape[4]),
+                    dtype=latents.dtype,
+                    device=device
+                )
             else:
                 # prepare the condition latents
                 past_condition_latents = []
-                clean_latents_list = self.get_pyramid_latent(torch.cat(generated_latents_list, dim=2), len(stages) - 1)
+                
+                current_latents = generated_latents[:, :, :unit_index * self.frame_per_unit]
+                clean_latents_list = self.get_pyramid_latent(current_latents, len(stages) - 1)
                 
                 for i_s in range(len(stages)):
                     last_cond_latent = clean_latents_list[i_s][:,:,-(self.frame_per_unit):]
@@ -750,15 +756,18 @@ class PyramidDiTForVideoGeneration:
                     is_first_frame=False,
                 )
 
-            generated_latents_list.append(intermed_latents[-1])
-            last_generated_latents = intermed_latents
-
-        generated_latents = torch.cat(generated_latents_list, dim=2)
-
+            start_idx = unit_index * self.frame_per_unit
+            end_idx = (unit_index + 1) * self.frame_per_unit
+            generated_latents[:, :, start_idx:end_idx] = intermed_latents[-1]
+            
         if output_type == "latent":
             image = generated_latents
         else:
             if cpu_offloading:
+                del latents
+                del stage_input
+                del intermed_latents
+                del past_condition_latents
                 if not self.sequential_offload_enabled:
                     self.dit.to("cpu")
                 self.vae.to("cuda")

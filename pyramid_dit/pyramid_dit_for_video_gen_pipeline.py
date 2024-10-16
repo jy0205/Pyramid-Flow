@@ -147,9 +147,8 @@ class PyramidDiTForVideoGeneration:
         cpu_offload(model, device, offload_buffers=offload_buffers)
     
     def enable_sequential_cpu_offload(self):
-        if torch.cuda.is_available():
-            self._enable_sequential_cpu_offload(self.text_encoder)
-            self._enable_sequential_cpu_offload(self.dit)
+        self._enable_sequential_cpu_offload(self.text_encoder)
+        self._enable_sequential_cpu_offload(self.dit)
 
     def load_checkpoint(self, checkpoint_path, model_key='model', **kwargs):
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
@@ -249,7 +248,7 @@ class PyramidDiTForVideoGeneration:
         intermed_latents = []
 
         for i_s in range(len(stages)):
-            self.scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device, dtype=dtype)
+            self.scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
             timesteps = self.scheduler.timesteps
 
             if i_s > 0:
@@ -337,7 +336,7 @@ class PyramidDiTForVideoGeneration:
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
             cpu_offloading=True
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.mps.is_available() else torch.device("cpu")
+        device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:
             # skip caring about the text encoder here as its about to be used anyways.
@@ -453,11 +452,8 @@ class PyramidDiTForVideoGeneration:
         
         for unit_index in tqdm(range(1, num_units)):
             gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            elif torch.mps.is_available():
-                torch.mps.empty_cache()
-
+            torch.cuda.empty_cache()
+            
             if callback:
                 callback(unit_index, num_units)
         
@@ -557,7 +553,7 @@ class PyramidDiTForVideoGeneration:
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
             cpu_offloading=True
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.mps.is_available() else torch.device("cpu")
+        device = self.device if not cpu_offloading else torch.device("cuda")
         dtype = self.dtype
         if cpu_offloading:
             # skip caring about the text encoder here as its about to be used anyways.
@@ -654,11 +650,8 @@ class PyramidDiTForVideoGeneration:
 
         for unit_index in tqdm(range(num_units)):
             gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            elif torch.mps.is_available():
-                torch.mps.empty_cache()
-
+            torch.cuda.empty_cache()
+            
             if callback:
                 callback(unit_index, num_units)
             

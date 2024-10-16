@@ -150,7 +150,9 @@ We also support two types of CPU offloading to reduce GPU memory requirements. N
 * Adding a `cpu_offloading=True` parameter to the generate function allows inference with **less than 12GB** of GPU memory. This feature was contributed by [@Ednaordinary](https://github.com/Ednaordinary), see [#23](https://github.com/jy0205/Pyramid-Flow/pull/23) for details.
 * Calling `model.enable_sequential_cpu_offload()` before the above procedure allows inference with **less than 8GB** of GPU memory. This feature was contributed by [@rodjjo](https://github.com/rodjjo), see [#75](https://github.com/jy0205/Pyramid-Flow/pull/75) for details.
 
+#### MPS backend
 
+Thanks to [@niw](https://github.com/niw), Apple Silicon (Mac) users can also use our model using the MPS backend! Please see https://github.com/jy0205/Pyramid-Flow/pull/108 for the details.
 
 ### 3. Multi-GPU Inference
 

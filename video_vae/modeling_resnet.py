@@ -126,6 +126,7 @@ class CausalResnetBlock3D(nn.Module):
         else:
             hidden_states = self.norm1(hidden_states)
 
+        hidden_states = hidden_states.contiguous() # MPS problem workaround.
         hidden_states = self.nonlinearity(hidden_states)
 
         hidden_states = self.conv1(hidden_states, is_init_image=is_init_image, temporal_chunk=temporal_chunk)
@@ -138,6 +139,7 @@ class CausalResnetBlock3D(nn.Module):
         else:
             hidden_states = self.norm2(hidden_states)
 
+        hidden_states = hidden_states.contiguous() # MPS problem workaround.
         hidden_states = self.nonlinearity(hidden_states)
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.conv2(hidden_states, is_init_image=is_init_image, temporal_chunk=temporal_chunk)

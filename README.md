@@ -152,7 +152,7 @@ We also support two types of CPU offloading to reduce GPU memory requirements. N
 
 #### MPS backend
 
-Thanks to [@niw](https://github.com/niw), Apple Silicon users (e.g. MacBook Pro with M2 24GB) can also try our model using the MPS backend! Please see https://github.com/jy0205/Pyramid-Flow/pull/108 for the details.
+Thanks to [@niw](https://github.com/niw), Apple Silicon users (e.g. MacBook Pro with M2 24GB) can also try our model using the MPS backend! Please see https://github.com/jy0205/Pyramid-Flow/pull/113 for the details.
 
 ### 3. Multi-GPU Inference
 

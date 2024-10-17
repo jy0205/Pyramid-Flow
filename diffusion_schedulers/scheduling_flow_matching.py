@@ -176,7 +176,7 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
     def _sigma_to_t(self, sigma):
         return sigma * self.config.num_train_timesteps
 
-    def set_timesteps(self, num_inference_steps: int, stage_index: int, device: Union[str, torch.device] = None):
+    def set_timesteps(self, num_inference_steps: int, stage_index: int, device: Union[str, torch.device] = None, dtype: torch.dtype = None):
         """
             Setting the timesteps and sigmas for each stage 
         """
@@ -191,7 +191,7 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         timesteps = np.linspace(
             timestep_max, timestep_min, num_inference_steps,
         )
-        self.timesteps = torch.from_numpy(timesteps).to(device=device)
+        self.timesteps = torch.from_numpy(timesteps).to(device=device, dtype=dtype)
 
         stage_sigmas = self.sigmas_per_stage[stage_index]
         sigma_max = stage_sigmas[0].item()
@@ -200,7 +200,7 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         ratios = np.linspace(
             sigma_max, sigma_min, num_inference_steps
         )
-        sigmas = torch.from_numpy(ratios).to(device=device)
+        sigmas = torch.from_numpy(ratios).to(device=device, dtype=dtype)
         self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
 
         self._step_index = None

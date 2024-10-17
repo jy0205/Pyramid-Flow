@@ -22,8 +22,6 @@ from trainer_misc import (
     all_to_all,
 )
 
-from IPython import embed
-
 
 def rope(pos: torch.Tensor, dim: int, theta: int) -> torch.Tensor:
     assert dim % 2 == 0, "The dimension must be even."

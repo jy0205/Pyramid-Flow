@@ -6,12 +6,14 @@
 # Replace the model_path to your downloaded ckpt dir
 
 GPUS=4 # should be 2 or 4
+MODEL_NAME=pyramid_mmdit    # or pyramid_flux
 VARIANT=diffusion_transformer_768p
 MODEL_PATH=PATH
 TASK=t2v    # i2v for image-to-video
 
 torchrun --nproc_per_node $GPUS \
     inference_multigpu.py \
+    --model_name $MODEL_NAME \
     --model_path $MODEL_PATH \
     --variant $VARIANT \
     --task $TASK \

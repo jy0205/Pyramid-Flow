@@ -2,7 +2,7 @@
 
 # ⚡️Pyramid Flow⚡️
 
-[[Paper]](https://arxiv.org/abs/2410.05954) [[Project Page ✨]](https://pyramid-flow.github.io) [[Model 🚀]](https://huggingface.co/rain1011/pyramid-flow-sd3) [[demo 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow)]
+[[Paper]](https://arxiv.org/abs/2410.05954) [[Project Page ✨]](https://pyramid-flow.github.io) [[miniFLUX Model 🚀]](https://huggingface.co/rain1011/pyramid-flow-miniflux) [[SD3 Model ⚡️]](https://huggingface.co/rain1011/pyramid-flow-sd3) [[demo 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow)]
 
 </div>
 
@@ -23,12 +23,32 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 
 ## News
 
-* `COMING SOON` ⚡️⚡️⚡️ Training code for both the Video VAE and DiT; New model checkpoints trained from scratch.
-  
-  > We are training Pyramid Flow from scratch to fix human structure issues related to the currently adopted SD3 initialization and hope to release it in the next few days.
+* `2024.10.29` ⚡️⚡️⚡️ We release [training code for VAE](#1-training-vae), [finetuning code for DiT](#2-finetuning-dit) and [new model checkpoints](https://huggingface.co/rain1011/pyramid-flow-miniflux) with FLUX structure trained from scratch.
+
+  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint. We will release 768p video checkpoint in a few days.
+
 * `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](#cpu-offloading) are supported. Use it with **less than 8GB** of GPU memory, with great speedup on multiple GPUs.
+
 * `2024.10.11`  🤗🤗🤗 [Hugging Face demo](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) is available. Thanks [@multimodalart](https://huggingface.co/multimodalart) for the commit! 
+
 * `2024.10.10`  🚀🚀🚀 We release the [technical report](https://arxiv.org/abs/2410.05954), [project page](https://pyramid-flow.github.io) and [model checkpoint](https://huggingface.co/rain1011/pyramid-flow-sd3) of Pyramid Flow.
+
+## Table of Contents
+
+* [Introduction](#introduction)
+* [Installation](#installation)
+* [Inference](#inference)
+  1. [Quick Start with Gradio](#1-quick-start-with-gradio)
+  2. [Inference Code](#2-inference-code)
+  3. [Multi-GPU Inference](#3-multi-gpu-inference)
+  4. [Usage Tips](#4-usage-tips)
+* [Training](#Training)
+  1. [Training VAE](#training-vae)
+  2. [Finetuning DiT](#finetuning-dit)
+* [Gallery](#gallery)
+* [Comparison](#comparison)
+* [Acknowledgement](#acknowledgement)
+* [Citation](#citation)
 
 ## Introduction
 
@@ -50,16 +70,16 @@ conda activate pyramid
 pip install -r requirements.txt
 ```
 
-Then, you can directly download the model from [Huggingface](https://huggingface.co/rain1011/pyramid-flow-sd3). We provide both model checkpoints for 768p and 384p video generation. The 384p checkpoint supports 5-second video generation at 24FPS, while the 768p checkpoint supports up to 10-second video generation at 24FPS.
+Then, download the model from [Huggingface](https://huggingface.co/rain1011) (there are two variants: [miniFLUX](https://huggingface.co/rain1011/pyramid-flow-miniflux) or [SD3](https://huggingface.co/rain1011/pyramid-flow-sd3)). The miniFLUX models support 1024p image and 384p video generation, and the SD3-based models support 768p and 384p video generation. The 384p checkpoint generates 5-second video at 24FPS, while the 768p checkpoint generates up to 10-second video at 24FPS.
 
 ```python
 from huggingface_hub import snapshot_download
 
 model_path = 'PATH'   # The local directory to save downloaded checkpoint
-snapshot_download("rain1011/pyramid-flow-sd3", local_dir=model_path, local_dir_use_symlinks=False, repo_type='model')
+snapshot_download("rain1011/pyramid-flow-miniflux", local_dir=model_path, local_dir_use_symlinks=False, repo_type='model')
 ```
 
-## Usage
+## Inference
 
 ### 1. Quick start with Gradio
 
@@ -89,9 +109,8 @@ model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
     model_dtype,
-    model_variant='diffusion_transformer_768p',     # 'diffusion_transformer_384p'
+    model_variant='diffusion_transformer_384p',     # SD3 supports 'diffusion_transformer_768p'
 )
-
 
 model.vae.enable_tiling()
 # model.vae.to("cuda")
@@ -112,10 +131,10 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
         prompt=prompt,
         num_inference_steps=[20, 20, 20],
         video_num_inference_steps=[10, 10, 10],
-        height=768,     
-        width=1280,
+        height=384,     
+        width=640,
         temp=16,                    # temp=16: 5s, temp=31: 10s
-        guidance_scale=9.0,         # The guidance for the first frame, set it to 7 for 384p variant
+        guidance_scale=7.0,         # The guidance for the first frame, set it to 7 for 384p variant
         video_guidance_scale=5.0,   # The guidance for the other video latent
         output_type="pil",
         save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed
@@ -127,7 +146,7 @@ export_to_video(frames, "./text_to_video_sample.mp4", fps=24)
 As an autoregressive model, our model also supports (text conditioned) image-to-video generation:
 
 ```python
-image = Image.open('assets/the_great_wall.jpg').convert("RGB").resize((1280, 768))
+image = Image.open('assets/the_great_wall.jpg').convert("RGB").resize((640, 384))
 prompt = "FPV flying over the Great Wall"
 
 with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
@@ -152,7 +171,7 @@ We also support two types of CPU offloading to reduce GPU memory requirements. N
 
 #### MPS backend
 
-Thanks to [@niw](https://github.com/niw), Apple Silicon users (e.g. MacBook Pro with M2 24GB) can also try our model using the MPS backend! Please see https://github.com/jy0205/Pyramid-Flow/pull/113 for the details.
+Thanks to [@niw](https://github.com/niw), Apple Silicon users (e.g. MacBook Pro with M2 24GB) can also try our model using the MPS backend! Please see [#113](https://github.com/jy0205/Pyramid-Flow/pull/113) for the details.
 
 ### 3. Multi-GPU Inference
 
@@ -166,11 +185,21 @@ It currently supports 2 or 4 GPUs, with more configurations available in the ori
 
   > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
 
-## Usage tips
+### 4. Usage tips
 
 * The `guidance_scale` parameter controls the visual quality. We suggest using a guidance within [7, 9] for the 768p checkpoint during text-to-video generation, and 7 for the 384p checkpoint.
 * The `video_guidance_scale` parameter controls the motion. A larger value increases the dynamic degree and mitigates the autoregressive generation degradation, while a smaller value stabilizes the video.
 * For 10-second video generation, we recommend using a guidance scale of 7 and a video guidance scale of 5.
+
+## Training
+
+### 1. Training VAE
+
+The hardware requirements for training VAE are at least 8 A100 GPUs. Please refer to [this document](https://github.com/jy0205/Pyramid-Flow/blob/main/docs/VAE.md). This is a [MAGVIT-v2](https://arxiv.org/abs/2310.05737) like continuous 3D VAE, which should be quite flexible. Feel free to build your own video generative model on this part of VAE training code.
+
+### 2. Finetuning DiT
+
+The hardware requirements for finetuning DiT are at least 8 A100 GPUs. Please refer to [this document](https://github.com/jy0205/Pyramid-Flow/blob/main/docs/DiT.md). We provide instructions for both autoregressive and non-autoregressive versions of Pyramid Flow. The former is more research oriented and the latter is more stable (but less efficient without temporal pyramid).
 
 ## Gallery
 

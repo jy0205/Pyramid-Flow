@@ -83,6 +83,7 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
         use_t5_mask: bool = False,
         add_temp_pos_embed: bool = False,
         interp_condition_pos: bool = False,
+        gradient_checkpointing_ratio: float = 0.6,
     ):
         super().__init__()
 
@@ -138,6 +139,8 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
         self.norm_out = AdaLayerNormContinuous(self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6)
         self.proj_out = nn.Linear(self.inner_dim, patch_size * patch_size * self.out_channels, bias=True)
         self.gradient_checkpointing = use_gradient_checkpointing
+        self.gradient_checkpointing_ratio = gradient_checkpointing_ratio
+
         self.patch_size = patch_size
         self.use_flash_attn = use_flash_attn
         self.use_temporal_causal = use_temporal_causal
@@ -455,7 +458,7 @@ class PyramidDiffusionMMDiT(ModelMixin, ConfigMixin):
 
         # print(hidden_length)
         for i_b, block in enumerate(self.transformer_blocks):
-            if self.training and self.gradient_checkpointing and (i_b >= 2):
+            if self.training and self.gradient_checkpointing and (i_b >= int(len(self.transformer_blocks) * self.gradient_checkpointing_ratio)):
                 def create_custom_forward(module):
                     def custom_forward(*inputs):
                         return module(*inputs)

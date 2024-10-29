@@ -51,6 +51,7 @@ class LPIPSWithDiscriminator(nn.Module):
         kl_weight=1.0,
         pixelloss_weight=1.0,
         perceptual_weight=1.0,
+        lpips_ckpt='/home/jinyang06/models/vae/video_vae_baseline/vgg_lpips.pth',
         # --- Discriminator Loss ---
         disc_num_layers=4,
         disc_in_channels=3,
@@ -65,7 +66,7 @@ class LPIPSWithDiscriminator(nn.Module):
         assert disc_loss in ["hinge", "vanilla"]
         self.kl_weight = kl_weight
         self.pixel_weight = pixelloss_weight
-        self.perceptual_loss = LPIPS().eval()
+        self.perceptual_loss = LPIPS(lpips_ckpt_path=lpips_ckpt).eval()
         self.perceptual_weight = perceptual_weight
         self.logvar = nn.Parameter(torch.ones(size=()) * logvar_init)
 

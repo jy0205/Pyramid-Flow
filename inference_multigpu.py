@@ -15,6 +15,7 @@ from PIL import Image
 
 def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process Script', add_help=False)
+    parser.add_argument('--model_name', default='pyramid_mmdit', type=str, help="The model name", choices=["pyramid_flux", "pyramid_mmdit"])
     parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16")
     parser.add_argument('--model_path', default='/home/jinyang06/models/pyramid-flow', type=str, help='Set it to the downloaded checkpoint dir')
     parser.add_argument('--variant', default='diffusion_transformer_768p', type=str,)
@@ -44,6 +45,7 @@ def main():
     model = PyramidDiTForVideoGeneration(
         args.model_path,
         model_dtype,
+        model_name=args.model_name,
         model_variant=args.variant,
     )
 
@@ -79,7 +81,7 @@ def main():
                 height=height,
                 width=width,
                 temp=args.temp,
-                guidance_scale=9.0,         # The guidance for the first frame, set it to 7 for 384p variant
+                guidance_scale=7.0,         # The guidance for the first frame, set it to 7 for 384p variant
                 video_guidance_scale=5.0,   # The guidance for the other video latent
                 output_type="pil",
                 save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed

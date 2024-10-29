@@ -8,8 +8,9 @@ from collections import namedtuple
 
 class LPIPS(nn.Module):
     # Learned perceptual metric
-    def __init__(self, use_dropout=True):
+    def __init__(self, use_dropout=True, lpips_ckpt_path=None):
         super().__init__()
+        self.lpips_ckpt_path = lpips_ckpt_path  # replace with your lpips path
         self.scaling_layer = ScalingLayer()
         self.chns = [64, 128, 256, 512, 512]  # vg16 features
         self.net = vgg16(pretrained=False, requires_grad=False)
@@ -23,7 +24,8 @@ class LPIPS(nn.Module):
             param.requires_grad = False
 
     def load_from_pretrained(self):
-        ckpt = "/home/jinyang/models/vae/video_vae_baseline/vgg_lpips.pth"    # replace with your lpips
+        ckpt = self.lpips_ckpt_path
+        assert ckpt is not None, "Please replace with your lpips path"
         self.load_state_dict(torch.load(ckpt, map_location=torch.device("cpu")), strict=True)
         print("loaded pretrained LPIPS loss from {}".format(ckpt))
 

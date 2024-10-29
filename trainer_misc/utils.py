@@ -15,6 +15,12 @@ import argparse
 import torch
 from torch import optim as optim
 import torch.distributed as dist
+
+try:
+    from torch._six import inf
+except ImportError:
+    from torch import inf
+
 from tensorboardX import SummaryWriter
 
 
@@ -62,7 +68,7 @@ def setup_for_distributed(is_master):
     __builtin__.print = print
 
 
-def init_distributed_mode(args):
+def init_distributed_mode(args, init_pytorch_ddp=True):
     if int(os.getenv('OMPI_COMM_WORLD_SIZE', '0')) > 0:
         rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
         local_rank = int(os.environ['OMPI_COMM_WORLD_LOCAL_RANK'])
@@ -87,17 +93,18 @@ def init_distributed_mode(args):
         return
 
     args.distributed = True
-    torch.cuda.set_device(args.gpu)
     args.dist_backend = 'nccl'
     args.dist_url = "env://"
-
     print('| distributed init (rank {}): {}, gpu {}'.format(
         args.rank, args.dist_url, args.gpu), flush=True)
 
-    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-            world_size=args.world_size, rank=args.rank, timeout=datetime.timedelta(days=365))
-    torch.distributed.barrier()
-    setup_for_distributed(args.rank == 0)
+    if init_pytorch_ddp:
+        # Init DDP Group, for script without using accelerate framework
+        torch.cuda.set_device(args.gpu)
+        torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                world_size=args.world_size, rank=args.rank, timeout=datetime.timedelta(days=365))
+        torch.distributed.barrier()
+        setup_for_distributed(args.rank == 0)
 
 
 def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epochs=0, 
@@ -387,3 +394,135 @@ class MetricLogger(object):
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         print('{} Total time: {} ({:.4f} s / it)'.format(
             header, total_time_str, total_time / len(iterable)))
+
+
+def auto_load_model(args, model, model_without_ddp, optimizer, loss_scaler, model_ema=None, optimizer_disc=None):
+    output_dir = Path(args.output_dir)
+    if args.auto_resume and len(args.resume) == 0:
+        all_checkpoints = glob.glob(os.path.join(output_dir, 'checkpoint.pth'))
+        if len(all_checkpoints) > 0:
+            args.resume = os.path.join(output_dir, 'checkpoint.pth')
+        else:
+            all_checkpoints = glob.glob(os.path.join(output_dir, 'checkpoint-*.pth'))
+            latest_ckpt = -1
+            for ckpt in all_checkpoints:
+                t = ckpt.split('-')[-1].split('.')[0]
+                if t.isdigit():
+                    latest_ckpt = max(int(t), latest_ckpt)
+            if latest_ckpt >= 0:
+                args.resume = os.path.join(output_dir, 'checkpoint-%d.pth' % latest_ckpt)
+        print("Auto resume checkpoint: %s" % args.resume)
+
+    if args.resume:
+        if args.resume.startswith('https'):
+            checkpoint = torch.hub.load_state_dict_from_url(
+                args.resume, map_location='cpu', check_hash=True)
+        else:
+            checkpoint = torch.load(args.resume, map_location='cpu')
+    
+        model_without_ddp.load_state_dict(checkpoint['model']) # strict: bool=True, , strict=False
+        print("Resume checkpoint %s" % args.resume)
+
+        if ('optimizer' in checkpoint) and ('epoch' in checkpoint) and (optimizer is not None):
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            print(f"Resume checkpoint at epoch {checkpoint['epoch']}, the global optmization step is {checkpoint['step']}")
+            args.start_epoch = checkpoint['epoch'] + 1
+            args.global_step = checkpoint['step'] + 1
+            if model_ema is not None:
+                if 'model_ema' in checkpoint:
+                    ema_load_res = model_ema.load_state_dict(checkpoint["model_ema"])
+                print(f"EMA Model Resume results: {ema_load_res}")
+            if 'scaler' in checkpoint:
+                loss_scaler.load_state_dict(checkpoint['scaler'])
+            print("With optim & sched!")
+        if ('optimizer_disc' in checkpoint) and (optimizer_disc is not None):
+            optimizer_disc.load_state_dict(checkpoint['optimizer_disc'])
+
+
+def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, model_ema=None, optimizer_disc=None, save_ckpt_freq=1):
+    output_dir = Path(args.output_dir)
+    epoch_name = str(epoch)
+
+    checkpoint_paths = [output_dir / 'checkpoint.pth']
+    if epoch == 'best':
+        checkpoint_paths = [output_dir / ('checkpoint-%s.pth' % epoch_name),]
+    elif (epoch + 1) % save_ckpt_freq == 0:
+        checkpoint_paths.append(output_dir / ('checkpoint-%s.pth' % epoch_name))
+
+    for checkpoint_path in checkpoint_paths:
+        to_save = {
+            'model': model_without_ddp.state_dict(),
+            'epoch': epoch,
+            'step' : args.global_step,
+            'args': args,
+        }
+
+        if optimizer is not None:
+            to_save['optimizer'] = optimizer.state_dict()
+
+        if loss_scaler is not None:
+            to_save['scaler'] = loss_scaler.state_dict()
+
+        if model_ema is not None:
+            to_save['model_ema'] = model_ema.state_dict()
+            
+        if optimizer_disc is not None:
+            to_save['optimizer_disc'] = optimizer_disc.state_dict()
+
+        save_on_master(to_save, checkpoint_path)
+
+
+def get_grad_norm_(parameters, norm_type: float = 2.0, layer_names=None) -> torch.Tensor:
+    if isinstance(parameters, torch.Tensor):
+        parameters = [parameters]
+    
+    parameters = [p for p in parameters if p.grad is not None]
+        
+    norm_type = float(norm_type)
+    if len(parameters) == 0:
+        return torch.tensor(0.)
+    device = parameters[0].grad.device
+    
+    if norm_type == inf:
+        total_norm = max(p.grad.detach().abs().max().to(device) for p in parameters)
+    else:
+        layer_norm = torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters])
+        total_norm = torch.norm(layer_norm, norm_type)
+        
+        if layer_names is not None:
+            if torch.isnan(total_norm) or torch.isinf(total_norm) or total_norm > 1.0:
+                value_top, name_top = torch.topk(layer_norm, k=5)
+                print(f"Top norm value: {value_top}")
+                print(f"Top norm name: {[layer_names[i][7:] for i in name_top.tolist()]}")
+        
+    return total_norm
+
+
+class NativeScalerWithGradNormCount:
+    state_dict_key = "amp_scaler"
+
+    def __init__(self, enabled=True):
+        print(f"Set the loss scaled to {enabled}")
+        self._scaler = torch.cuda.amp.GradScaler(enabled=enabled)
+
+    def __call__(self, loss, optimizer, clip_grad=None, parameters=None, create_graph=False, update_grad=True, layer_names=None):
+        self._scaler.scale(loss).backward(create_graph=create_graph)
+        if update_grad:
+            if clip_grad is not None:
+                assert parameters is not None
+                self._scaler.unscale_(optimizer)  # unscale the gradients of optimizer's assigned params in-place
+                norm = torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+            else:
+                self._scaler.unscale_(optimizer)
+                norm = get_grad_norm_(parameters, layer_names=layer_names)
+            self._scaler.step(optimizer)
+            self._scaler.update()
+        else:
+            norm = None
+        return norm
+
+    def state_dict(self):
+        return self._scaler.state_dict()
+
+    def load_state_dict(self, state_dict): 
+        self._scaler.load_state_dict(state_dict)

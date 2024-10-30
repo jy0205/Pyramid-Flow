@@ -293,9 +293,9 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 txt_output = gr.Video(label="Generated Video")
         gr.Examples(
             examples=[
-                ["A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors", 16, 9.0, 5.0, "768p"],
-                ["Beautiful, snowy Tokyo city is bustling. The camera moves through the bustling city street, following several people enjoying the beautiful snowy weather and shopping at nearby stalls. Gorgeous sakura petals are flying through the wind along with snowflakes", 16, 9.0, 5.0, "768p"],
-                ["Extreme close-up of chicken and green pepper kebabs grilling on a barbeque with flames. Shallow focus and light smoke. vivid colours", 31, 9.0, 5.0, "768p"],
+                ["A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors", 16, 7.0, 5.0, "384p"],
+                ["Beautiful, snowy Tokyo city is bustling. The camera moves through the bustling city street, following several people enjoying the beautiful snowy weather and shopping at nearby stalls. Gorgeous sakura petals are flying through the wind along with snowflakes", 16, 7.0, 5.0, "384p"],
+                # ["Extreme close-up of chicken and green pepper kebabs grilling on a barbeque with flames. Shallow focus and light smoke. vivid colours", 31, 9.0, 5.0, "768p"],
             ],
             inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown],
             outputs=[txt_output],
@@ -315,7 +315,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 img_output = gr.Video(label="Generated Video")
         gr.Examples(
             examples=[
-                ['assets/the_great_wall.jpg', 'FPV flying over the Great Wall', 16, 4.0, "768p"]
+                ['assets/the_great_wall.jpg', 'FPV flying over the Great Wall', 16, 4.0, "384p"]
             ],
             inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown],
             outputs=[img_output],

@@ -184,7 +184,7 @@ CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 
 It currently supports 2 or 4 GPUs, with more configurations available in the original script. You can also launch a [multi-GPU Gradio demo](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/app_multigpu_engine.sh) created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
 
-  > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs. Stay tuned for the training code.
+  > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs.
 
 ### 4. Usage tips
 

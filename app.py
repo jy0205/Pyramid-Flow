@@ -285,7 +285,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
         with gr.Row():
             with gr.Column():
                 text_prompt = gr.Textbox(label="Prompt (Less than 128 words)", placeholder="Enter a text prompt for the video", lines=2)
-                temp_slider = gr.Slider(1, 31, value=16, step=1, label="Duration")
+                temp_slider = gr.Slider(1, 16, value=16, step=1, label="Duration")
                 guidance_scale_slider = gr.Slider(1.0, 15.0, value=9.0, step=0.1, label="Guidance Scale")
                 video_guidance_scale_slider = gr.Slider(1.0, 10.0, value=5.0, step=0.1, label="Video Guidance Scale")
                 txt_generate = gr.Button("Generate Video")

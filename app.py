@@ -277,7 +277,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
     with gr.Row():
         resolution_dropdown = gr.Dropdown(
             choices=["768p", "384p"],
-            value="768p",
+            value="384p",
             label="Model Resolution"
         )
 

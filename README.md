@@ -25,7 +25,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 
 * `2024.10.29` ⚡️⚡️⚡️ We release [training code for VAE](#1-training-vae), [finetuning code for DiT](#2-finetuning-dit) and [new model checkpoints](https://huggingface.co/rain1011/pyramid-flow-miniflux) with FLUX structure trained from scratch.
 
-  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint. The new miniflux model shows great improvement on human structure and motion stability. We will release 768p video checkpoint in a few days.
+  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint (up to 5s). The new miniflux model shows great improvement on human structure and motion stability. We will release 768p video checkpoint in a few days.
 
 * `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](#cpu-offloading) are supported. Use it with **less than 8GB** of GPU memory, with great speedup on multiple GPUs.
 
@@ -122,7 +122,7 @@ model.vae.enable_tiling()
 model.enable_sequential_cpu_offload()
 ```
 
-Then, you can try text-to-video generation on your own prompts:
+Then, you can try text-to-video generation on your own prompts. Noting that the 384p version only support 5s now (set temp up to 16)! 
 
 ```python
 prompt = "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors"

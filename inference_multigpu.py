@@ -42,6 +42,10 @@ def main():
     rank = args.rank
     model_dtype = args.model_dtype
 
+    if args.model_name == "pyramid_flux":
+        assert args.variant != "diffusion_transformer_768p", "The pyramid_flux does not support high resolution now, \
+            we will release it after finishing training. You can modify the model_name to pyramid_mmdit to support 768p version generation"
+    
     model = PyramidDiTForVideoGeneration(
         args.model_path,
         model_dtype,

@@ -16,6 +16,7 @@ from trainer_misc import init_distributed_mode, init_sequence_parallel_group
 
 def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process Script', add_help=False)
+    parser.add_argument('--model_name', default='pyramid_mmdit', type=str, help="The model name", choices=["pyramid_flux", "pyramid_mmdit"])
     parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16")
     parser.add_argument('--model_path', required=True, type=str, help='Path to the downloaded checkpoint directory')
     parser.add_argument('--variant', default='diffusion_transformer_768p', type=str)
@@ -46,9 +47,14 @@ def main():
     rank = args.rank
     model_dtype = args.model_dtype
 
+    if args.model_name == "pyramid_flux":
+        assert args.variant != "diffusion_transformer_768p", "The pyramid_flux does not support high resolution now, \
+            we will release it after finishing training. You can modify the model_name to pyramid_mmdit to support 768p version generation"
+
     model = PyramidDiTForVideoGeneration(
         args.model_path,
         model_dtype,
+        model_name=args.model_name,
         model_variant=args.variant,
     )
 

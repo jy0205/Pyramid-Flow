@@ -359,7 +359,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
 
         if is_sequence_parallel_initialized():
             sp_group_size = get_sequence_parallel_world_size()
-            batch_size = batch_size // sp_group_size
+            if self.training:
+                batch_size = batch_size // sp_group_size
 
         for i_p, length in enumerate(hidden_length):
             width, height, temp = widths[i_p], heights[i_p], temps[i_p]
@@ -369,6 +370,10 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             if is_sequence_parallel_initialized():
                 sp_group = get_sequence_parallel_group()
                 sp_group_size = get_sequence_parallel_world_size()
+
+                if not self.training:
+                    hidden_states = hidden_states.repeat(sp_group_size, 1, 1)
+
                 hidden_states = all_to_all(hidden_states, sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
 
             # only the trainable token are taking part in loss computation

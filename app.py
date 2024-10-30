@@ -16,7 +16,9 @@ model_cache = {}
 model_cache_lock = threading.Lock()
 
 # Configuration
-model_repo = "rain1011/pyramid-flow-sd3"  # Replace with the actual model repository on Hugging Face
+model_name = "pyramid_flux"    # or pyramid_mmdit
+model_repo = "rain1011/pyramid-flow-sd3" if model_name == "pyramid_mmdit" else "rain1011/pyramid-flow-miniflux"
+
 model_dtype = "bf16"                      # Support bf16 and fp32
 variants = {
     'high': 'diffusion_transformer_768p',  # For high-resolution version
@@ -91,8 +93,15 @@ def initialize_model(variant):
 
     # Initialize the model
     try:
+        # TODO: remove this check code after miniflux 768 version is released
+        if model_name == "pyramid_flux":
+            if variant_dir == "diffusion_transformer_768p":
+                raise NotImplementedError("The pyramid_flux does not support high resolution now, we will release it after finishing training. \
+                        You can modify the model_name to pyramid_mmdit to support 768p version generation")
+
         model = PyramidDiTForVideoGeneration(
             base_path,                # Pass the base model path
+            model_name=model_name,     # set to pyramid_flux or pyramid_mmdit
             model_dtype=model_dtype,  # Use bf16
             model_variant=variant_dir,  # Pass the variant directory name
             cpu_offloading=cpu_offloading,  # Pass the CPU offloading flag

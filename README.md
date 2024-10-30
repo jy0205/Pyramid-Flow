@@ -95,7 +95,7 @@ Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/
 
 ### 2. Inference Code
 
-To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We further simplify it into the following two-step procedure. First, load the downloaded model:
+To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We strongly recommend you to try the latest published pyramid-miniflux, which shows great improvement on human structure and motion stability. Set the param `model_name` to `pyramid_flux` to use. We further simplify it into the following two-step procedure. First, load the downloaded model:
 
 ```python
 import torch
@@ -108,6 +108,7 @@ model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16
 
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
+    model_name="pyramid_flux",
     model_dtype,
     model_variant='diffusion_transformer_384p',     # SD3 supports 'diffusion_transformer_768p'
 )

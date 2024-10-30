@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# This scripts using 2 gpus to inference. Now only tested at 2GPUs and 4GPUs
+# This scripts using 2 gpus to inference.
+# Now only supports 2GPUs and 4GPUs for pyramid-flow-sd3; and 2GPUs or 3 GPUs for pyramid-flow-miniflux
 # You can set it to 4 to further reduce the generating time
 # Requires nproc_per_node == sp_group_size
 # Replace the model_path to your downloaded ckpt dir
 
-GPUS=4 # should be 2 or 4
-MODEL_NAME=pyramid_mmdit    # or pyramid_flux
-VARIANT=diffusion_transformer_768p
-MODEL_PATH=PATH
+GPUS=2 # should be 2 or 3
+MODEL_NAME=pyramid_flux    # or pyramid_mmdit
+VARIANT=diffusion_transformer_384p   
+MODEL_PATH=/home/jinyang06/models/pyramid-flow-miniflux   # Replace with your checkpoint path
 TASK=t2v    # i2v for image-to-video
 
 torchrun --nproc_per_node $GPUS \

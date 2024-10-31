@@ -58,7 +58,7 @@ Existing video diffusion models operate at full resolution, spending a lot of co
 
 ## Installation
 
-We recommend setting up the environment with conda. The codebase currently uses Python 3.8.10 and PyTorch 2.1.2, and we are actively working to support a wider range of versions.
+We recommend setting up the environment with conda. The codebase currently uses Python 3.8.10 and PyTorch 2.1.2 ([guide](https://pytorch.org/get-started/previous-versions/#v212)), and we are actively working to support a wider range of versions.
 
 ```bash
 git clone https://github.com/jy0205/Pyramid-Flow

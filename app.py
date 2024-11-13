@@ -93,11 +93,6 @@ def initialize_model(variant):
 
     # Initialize the model
     try:
-        # TODO: remove this check code after miniflux 768 version is released
-        if model_name == "pyramid_flux":
-            if variant_dir == "diffusion_transformer_768p":
-                raise NotImplementedError("The pyramid_flux does not support high resolution now, we will release it after finishing training. \
-                        You can modify the model_name to pyramid_mmdit to support 768p version generation")
 
         model = PyramidDiTForVideoGeneration(
             base_path,                # Pass the base model path

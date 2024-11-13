@@ -110,7 +110,7 @@ model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
     model_name="pyramid_flux",
     model_dtype,
-    model_variant='diffusion_transformer_384p',     # SD3 supports 'diffusion_transformer_768p'
+    model_variant='diffusion_transformer_768p',
 )
 
 model.vae.enable_tiling()
@@ -127,13 +127,21 @@ Then, you can try text-to-video generation on your own prompts. Noting that the 
 ```python
 prompt = "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors"
 
+# used for 384p model variant
+# width = 640
+# height = 384
+
+# used for 768p model variant
+width = 1280
+height = 768
+
 with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
     frames = model.generate(
         prompt=prompt,
         num_inference_steps=[20, 20, 20],
         video_num_inference_steps=[10, 10, 10],
-        height=384,     
-        width=640,
+        height=height,     
+        width=width,
         temp=16,                    # temp=16: 5s, temp=31: 10s
         guidance_scale=7.0,         # The guidance for the first frame, set it to 7 for 384p variant
         video_guidance_scale=5.0,   # The guidance for the other video latent
@@ -147,7 +155,15 @@ export_to_video(frames, "./text_to_video_sample.mp4", fps=24)
 As an autoregressive model, our model also supports (text conditioned) image-to-video generation:
 
 ```python
-image = Image.open('assets/the_great_wall.jpg').convert("RGB").resize((640, 384))
+# used for 384p model variant
+# width = 640
+# height = 384
+
+# used for 768p model variant
+width = 1280
+height = 768
+
+image = Image.open('assets/the_great_wall.jpg').convert("RGB").resize((width, height))
 prompt = "FPV flying over the Great Wall"
 
 with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch_dtype):
@@ -182,7 +198,7 @@ For users with multiple GPUs, we provide an [inference script](https://github.co
 CUDA_VISIBLE_DEVICES=0,1 sh scripts/inference_multigpu.sh
 ```
 
-It currently supports 2 or 4 GPUs, with more configurations available in the original script. You can also launch a [multi-GPU Gradio demo](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/app_multigpu_engine.sh) created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
+It currently supports 2 or 4 GPUs (For SD3 Version), with more configurations available in the original script. You can also launch a [multi-GPU Gradio demo](https://github.com/jy0205/Pyramid-Flow/blob/main/scripts/app_multigpu_engine.sh) created by [@tpc2233](https://github.com/tpc2233), see [#59](https://github.com/jy0205/Pyramid-Flow/pull/59) for details.
 
   > Spoiler: We didn't even use sequence parallelism in training, thanks to our efficient pyramid flow designs.
 

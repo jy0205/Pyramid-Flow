@@ -22,7 +22,7 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 </table>
 
 ## News
-* `2024.11.13`  🚀🚀🚀 We release the 768p miniflux checkpoint (up to 10s).
+* `2024.11.13`  🚀🚀🚀 We release the [768p miniFLUX checkpoint](https://huggingface.co/rain1011/pyramid-flow-miniflux) (up to 10s).
 
   > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint, 384p video checkpoint (up to 5s) and 768p video checkpoint (up to 10s). The new miniflux model shows great improvement on human structure and motion stability
 

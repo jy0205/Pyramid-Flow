@@ -161,8 +161,8 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
             else self.config.sample_size
         )
         self.tile_latent_min_size = int(sample_size / downsample_scale) 
-        self.encode_tile_overlap_factor = 1 / 8
-        self.decode_tile_overlap_factor = 1 / 8
+        self.encode_tile_overlap_factor = 1 / 4
+        self.decode_tile_overlap_factor = 1 / 4
         self.downsample_scale = downsample_scale
 
         self.apply(self._init_weights)

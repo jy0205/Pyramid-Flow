@@ -22,10 +22,11 @@ This is the official repository for Pyramid Flow, a training-efficient **Autoreg
 </table>
 
 ## News
+* `2024.11.13`  🚀🚀🚀 We release the 768p miniflux checkpoint.
 
 * `2024.10.29` ⚡️⚡️⚡️ We release [training code for VAE](#1-training-vae), [finetuning code for DiT](#2-finetuning-dit) and [new model checkpoints](https://huggingface.co/rain1011/pyramid-flow-miniflux) with FLUX structure trained from scratch.
 
-  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint (up to 5s). The new miniflux model shows great improvement on human structure and motion stability. We will release 768p video checkpoint in a few days.
+  > We have switched the model structure from SD3 to a mini FLUX to fix human structure issues, please try our 1024p image checkpoint and 384p video checkpoint (up to 5s). The new miniflux model shows great improvement on human structure and motion stability
 
 * `2024.10.13`  ✨✨✨ [Multi-GPU inference](#3-multi-gpu-inference) and [CPU offloading](#cpu-offloading) are supported. Use it with **less than 8GB** of GPU memory, with great speedup on multiple GPUs.
 

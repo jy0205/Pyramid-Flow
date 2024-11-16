@@ -8,6 +8,7 @@ from pyramid_dit import PyramidDiTForVideoGeneration
 from diffusers.utils import export_to_video
 from huggingface_hub import snapshot_download
 import threading
+import random
 
 # Global model cache
 model_cache = {}
@@ -124,8 +125,15 @@ def initialize_model(variant):
         raise
 
 # Function to get the model from cache or initialize it
-def initialize_model_cached(variant):
+def initialize_model_cached(variant, seed):
     key = variant
+
+    if seed == 0:
+        seed = random.randint(0, 2**8 - 1)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
     
     # Check if the model is already in the cache
     if key not in model_cache:
@@ -155,7 +163,7 @@ def resize_crop_image(img: PIL.Image.Image, tgt_width, tgt_height):
     return img
 
 # Function to generate text-to-video
-def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, resolution, progress=gr.Progress()):
+def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, resolution, seed, progress=gr.Progress()):
     progress(0, desc="Loading model")
     print("[DEBUG] generate_text_to_video called.")
     variant = '768p' if resolution == "768p" else '384p'
@@ -167,7 +175,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
 
     # Initialize model based on user options using cached function
     try:
-        model, torch_dtype_selected = initialize_model_cached(variant)
+        model, torch_dtype_selected = initialize_model_cached(variant, seed)
     except Exception as e:
         print(f"[ERROR] Model initialization failed: {e}")
         return f"Model initialization failed: {e}"
@@ -204,7 +212,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
     return video_path
 
 # Function to generate image-to-video
-def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolution, progress=gr.Progress()):
+def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolution, seed, progress=gr.Progress()):
     progress(0, desc="Loading model")
     print("[DEBUG] generate_image_to_video called.")
     variant = '768p' if resolution == "768p" else '384p'
@@ -223,7 +231,7 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
 
     # Initialize model based on user options using cached function
     try:
-        model, torch_dtype_selected = initialize_model_cached(variant)
+        model, torch_dtype_selected = initialize_model_cached(variant, seed)
     except Exception as e:
         print(f"[ERROR] Model initialization failed: {e}")
         return f"Model initialization failed: {e}"
@@ -256,6 +264,12 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
         return f"Error exporting video: {e}"
     return video_path
 
+def update_slider(resolution):
+    if resolution == "768p":
+        return [gr.update(maximum=31), gr.update(maximum=31)]
+    else:
+        return [gr.update(maximum=16), gr.update(maximum=16)]
+
 # Gradio interface
 with gr.Blocks() as demo:
     gr.Markdown(
@@ -283,6 +297,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 temp_slider = gr.Slider(1, 16, value=16, step=1, label="Duration")
                 guidance_scale_slider = gr.Slider(1.0, 15.0, value=9.0, step=0.1, label="Guidance Scale")
                 video_guidance_scale_slider = gr.Slider(1.0, 10.0, value=5.0, step=0.1, label="Video Guidance Scale")
+                text_seed = gr.Number(label="Inference Seed (Enter a positive number, 0 for random)", value=0)
                 txt_generate = gr.Button("Generate Video")
             with gr.Column():
                 txt_output = gr.Video(label="Generated Video")
@@ -292,7 +307,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 ["Beautiful, snowy Tokyo city is bustling. The camera moves through the bustling city street, following several people enjoying the beautiful snowy weather and shopping at nearby stalls. Gorgeous sakura petals are flying through the wind along with snowflakes", 16, 7.0, 5.0, "384p"],
                 # ["Extreme close-up of chicken and green pepper kebabs grilling on a barbeque with flames. Shallow focus and light smoke. vivid colours", 31, 9.0, 5.0, "768p"],
             ],
-            inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown],
+            inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown, text_seed],
             outputs=[txt_output],
             fn=generate_text_to_video,
             cache_examples='lazy',
@@ -305,6 +320,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
                 image_prompt = gr.Textbox(label="Prompt (Less than 128 words)", placeholder="Enter a text prompt for the video", lines=2)
                 image_temp_slider = gr.Slider(2, 16, value=16, step=1, label="Duration")
                 image_video_guidance_scale_slider = gr.Slider(1.0, 7.0, value=4.0, step=0.1, label="Video Guidance Scale")
+                image_seed = gr.Number(label="Inference Seed (Enter a positive number, 0 for random)", value=0)
                 img_generate = gr.Button("Generate Video")
             with gr.Column():
                 img_output = gr.Video(label="Generated Video")
@@ -312,7 +328,7 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
             examples=[
                 ['assets/the_great_wall.jpg', 'FPV flying over the Great Wall', 16, 4.0, "384p"]
             ],
-            inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown],
+            inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown, image_seed],
             outputs=[img_output],
             fn=generate_image_to_video,
             cache_examples='lazy',
@@ -321,14 +337,19 @@ Pyramid Flow is a training-efficient **Autoregressive Video Generation** model b
     # Update generate functions to include resolution options
     txt_generate.click(
         generate_text_to_video,
-        inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown],
+        inputs=[text_prompt, temp_slider, guidance_scale_slider, video_guidance_scale_slider, resolution_dropdown, text_seed],
         outputs=txt_output
     )
 
     img_generate.click(
         generate_image_to_video,
-        inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown],
+        inputs=[image_input, image_prompt, image_temp_slider, image_video_guidance_scale_slider, resolution_dropdown, image_seed],
         outputs=img_output
+    )
+    resolution_dropdown.change(
+        fn=update_slider,
+        inputs=resolution_dropdown,
+        outputs=[temp_slider, image_temp_slider]
     )
 
 # Launch Gradio app

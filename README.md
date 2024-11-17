@@ -95,6 +95,27 @@ The Gradio demo will be opened in a browser. Thanks to [@tpc2233](https://github
 
 Or, try it out effortlessly on [Hugging Face Space 🤗](https://huggingface.co/spaces/Pyramid-Flow/pyramid-flow) created by [@multimodalart](https://huggingface.co/multimodalart). Due to GPU limits, this online demo can only generate 25 frames (export at 8FPS or 24FPS). Duplicate the space to generate longer videos.
 
+#### Quick Start on Google Colab
+
+To quickly try out Pyramid Flow on Google Colab, run the code below:
+
+```
+# Setup
+!git clone https://github.com/jy0205/Pyramid-Flow
+%cd Pyramid-Flow
+!pip install -r requirements.txt
+!pip install gradio
+
+# This code downloads miniFLUX
+from huggingface_hub import snapshot_download
+
+model_path = '/content/Pyramid-Flow'
+snapshot_download("rain1011/pyramid-flow-miniflux", local_dir=model_path, local_dir_use_symlinks=False, repo_type='model')
+
+# Start
+!python app.py
+```
+
 ### 2. Inference Code
 
 To use our model, please follow the inference code in `video_generation_demo.ipynb` at [this link](https://github.com/jy0205/Pyramid-Flow/blob/main/video_generation_demo.ipynb). We strongly recommend you to try the latest published pyramid-miniflux, which shows great improvement on human structure and motion stability. Set the param `model_name` to `pyramid_flux` to use. We further simplify it into the following two-step procedure. First, load the downloaded model:

@@ -83,8 +83,9 @@ class CausalVideoVAELossWrapper(nn.Module):
         vae_ckpt_load_result = self.vae.load_state_dict(vae_checkpoint, strict=False)
         print(f"Load vae checkpoint from {checkpoint_path}, load result: {vae_ckpt_load_result}")
 
-        disc_ckpt_load_result = self.loss.discriminator.load_state_dict(disc_checkpoint, strict=False)
-        print(f"Load disc checkpoint from {checkpoint_path}, load result: {disc_ckpt_load_result}")
+        if self.add_discriminator:
+            disc_ckpt_load_result = self.loss.discriminator.load_state_dict(disc_checkpoint, strict=False)
+            print(f"Load disc checkpoint from {checkpoint_path}, load result: {disc_ckpt_load_result}")
 
     def forward(self, x, step, identifier=['video']):
         xdim = x.ndim

@@ -223,6 +223,7 @@ def main(args):
         world_size=world_size,
         rank=global_rank,
         image_mix_ratio=args.image_mix_ratio,
+        use_image_video_mixed_training=args.use_image_video_mixed_training,
     )
     
     torch.distributed.barrier()

@@ -31,7 +31,8 @@ The VAE training script is `scripts/train_causal_video_vae.sh`, run it as follow
 sh scripts/train_causal_video_vae.sh
 ```
 
-We also provide a VAE demo `causal_video_vae_demo.ipynb` for image and video reconstruction.
+We also provide a VAE demo `causal_video_vae_demo.ipynb` for image and video reconstruction. 
+> The original vgg lpips download URL is not available, I have shared the one we used in this [URL](https://drive.google.com/file/d/1YeFlX5BKKw-HGkjNd1r7DSwas1iJJwqC/view). You can download it and replace the LPIPS_CKPT with the correct path.
 
 
 ## Tips

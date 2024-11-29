@@ -99,8 +99,6 @@ def _cp_pass_from_previous_rank(input_, dim, kernel_size):
         recv_rank += cp_world_size
 
     recv_buffer = torch.empty_like(input_[-kernel_size + 1 :]).contiguous()
-    if recv_buffer.shape[0] < kernel_size - 1:
-        recv_buffer = recv_buffer.repeat(kernel_size - 1,1,1,1,1)[:kernel_size - 1].contiguous()
     if cp_rank < cp_world_size - 1:
         req_send = torch.distributed.isend(input_[-kernel_size + 1 :].contiguous(), send_rank, group=group)
     if cp_rank > 0:

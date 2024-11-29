@@ -93,15 +93,23 @@ class CausalConv3d(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def context_parallel_forward(self, x):
-        x = cp_pass_from_previous_rank(x, dim=2, kernel_size=self.time_kernel_size)
+        cp_rank = get_context_parallel_rank()
+        if self.time_kernel_size == 3 and ((cp_rank == 0 and x.shape[2] <= 2) or (cp_rank != 0 and x.shape[2] <= 1)):
+            # This code is only for training 8 frames per GPU (except for cp_rank=0, 9 frames) with context parallel
+            # If you do not have enough GPU memory, you can set the total frames = 8 * CONTEXT_SIZE + 1, enable each GPU
+            # only forward 8 frames during training
+            x = cp_pass_from_previous_rank(x, dim=2, kernel_size=2)   # pass one latent
+            trans_x = cp_pass_from_previous_rank(x[:, :, :-1], dim=2, kernel_size=2)   # pass one latent
+            x = torch.cat([trans_x, x[:, :,-1:]], dim=2)
+        else:
+            x = cp_pass_from_previous_rank(x, dim=2, kernel_size=self.time_kernel_size)
         
         x = F.pad(x, self.time_uncausal_padding, mode='constant')
 
-        cp_rank = get_context_parallel_rank()
         if cp_rank != 0:
             if self.temporal_stride == 2 and self.time_kernel_size == 3:
                 x = x[:,:,1:]
-    
+
         x = self.conv(x)
         return x
 

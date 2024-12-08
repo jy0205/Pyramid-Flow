@@ -132,7 +132,7 @@ model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
     model_name="pyramid_flux",
-    model_dtype,
+    model_dtype=model_dtype,
     model_variant='diffusion_transformer_768p',
 )
 

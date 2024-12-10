@@ -360,6 +360,7 @@ class CausalVaeDecoder(nn.Module):
 
         # post-process
         sample = self.conv_norm_out(sample)
+        sample = sample.contiguous() # MPS problem workaround.
         sample = self.conv_act(sample)
         sample = self.conv_out(sample, is_init_image=is_init_image, temporal_chunk=temporal_chunk)
 

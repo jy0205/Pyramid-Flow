@@ -10,6 +10,9 @@ from huggingface_hub import snapshot_download
 import threading
 import random
 
+# Disabling parallelism to avoid deadlocks.
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # Global model cache
 model_cache = {}
 
@@ -30,7 +33,7 @@ width_high = 1280
 height_high = 768
 width_low = 640
 height_low = 384
-cpu_offloading = True  # enable cpu_offloading by default
+cpu_offloading = torch.cuda.is_available()  # enable cpu_offloading by default
 
 # Get the current working directory and create a folder to store the model
 current_directory = os.getcwd()
@@ -115,6 +118,10 @@ def initialize_model(variant):
                 model.vae.to("cuda")
                 model.dit.to("cuda")
                 model.text_encoder.to("cuda")
+        elif torch.mps.is_available():
+            model.vae.to("mps")
+            model.dit.to("mps")
+            model.text_encoder.to("mps")
         else:
             print("[WARNING] CUDA is not available. Proceeding without GPU.")
 
@@ -182,7 +189,7 @@ def generate_text_to_video(prompt, temp, guidance_scale, video_guidance_scale, r
 
     try:
         print("[INFO] Starting text-to-video generation...")
-        with torch.no_grad(), torch.autocast('cuda', dtype=torch_dtype_selected):
+        with torch.no_grad(), torch.autocast(model.device.type, dtype=torch_dtype_selected):
             frames = model.generate(
                 prompt=prompt,
                 num_inference_steps=[20, 20, 20],
@@ -238,7 +245,7 @@ def generate_image_to_video(image, prompt, temp, video_guidance_scale, resolutio
 
     try:
         print("[INFO] Starting image-to-video generation...")
-        with torch.no_grad(), torch.autocast('cuda', dtype=torch_dtype_selected):
+        with torch.no_grad(), torch.autocast(model.device.type, dtype=torch_dtype_selected):
             frames = model.generate_i2v(
                 prompt=prompt,
                 input_image=image,

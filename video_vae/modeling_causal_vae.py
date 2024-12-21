@@ -361,6 +361,8 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
 
         dec_list = []
         for idx, frames in enumerate(frame_list):
+            if torch.mps.is_available():
+                torch.mps.empty_cache()
             if idx == 0:
                 z_h = self.post_quant_conv(frames, is_init_image=True, temporal_chunk=True)
                 dec = self.decoder(z_h, is_init_image=True, temporal_chunk=True)

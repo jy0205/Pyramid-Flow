@@ -694,14 +694,19 @@ class PyramidDiTForVideoGeneration:
         latents = randn_tensor(shape, generator=generator, device=device, dtype=dtype)
         return latents
 
-    def sample_block_noise(self, bs, ch, temp, height, width):
+    def sample_block_noise(self, bs, ch, temp, height, width, device, dtype):
+        #Since MultivariateNormal is not implemented for bf16 it needs to be done in float
+        #But at least it can already happen on the device:
         gamma = self.scheduler.config.gamma
-        dist = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(4), torch.eye(4) * (1 + gamma) - torch.ones(4, 4) * gamma)
+        dist = torch.distributions.multivariate_normal.MultivariateNormal(
+            torch.zeros(4, device=device),
+            torch.eye(4, device=device) * (1 + gamma) - torch.ones(4, 4, device=device) * gamma
+        )
         block_number = bs * ch * temp * (height // 2) * (width // 2)
         noise = torch.stack([dist.sample() for _ in range(block_number)]) # [block number, 4]
-        noise = rearrange(noise, '(b c t h w) (p q) -> b c t (h p) (w q)',b=bs,c=ch,t=temp,h=height//2,w=width//2,p=2,q=2)
-        return noise
-
+        noise = rearrange(noise, '(b c t h w) (p q) -> b c t (h p) (w q)', b=bs, c=ch, t=temp, h=height//2, w=width//2, p=2, q=2)
+        return noise.to(dtype=dtype)
+    
     @torch.no_grad()
     def generate_one_unit(
         self,
@@ -738,14 +743,14 @@ class PyramidDiTForVideoGeneration:
                 beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
                 bs, ch, temp, height, width = latents.shape
-                noise = self.sample_block_noise(bs, ch, temp, height, width)
-                noise = noise.to(device=device, dtype=dtype)
-                latents = alpha * latents + beta * noise    # To fix the block artifact
-
+                noise = self.sample_block_noise(bs, ch, temp, height, width, device, dtype)
+                latents.mul_(alpha).add_(noise, alpha=beta) # To fix the block artifact
+                
+                
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
-                latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
-            
+                latent_model_input = latents.repeat_interleave(2, dim=0) if self.do_classifier_free_guidance else latents
+                
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
 
@@ -754,11 +759,9 @@ class PyramidDiTForVideoGeneration:
                     sp_group_rank = get_sequence_parallel_group_rank()
                     global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
                     torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
-                
-                latent_model_input = past_conditions[i_s] + [latent_model_input]
-
+                             
                 noise_pred = self.dit(
-                    sample=[latent_model_input],
+                    sample=[past_conditions[i_s] + [latent_model_input]],
                     timestep_ratio=timestep,
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
@@ -910,21 +913,33 @@ class PyramidDiTForVideoGeneration:
         input_image_tensor = image_transform(input_image).unsqueeze(0).unsqueeze(2)   # [b c 1 h w]
         input_image_latent = (self.vae.encode(input_image_tensor.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
+        del input_image_tensor
+        
         if is_sequence_parallel_initialized():
             # sync the image latent across multiple GPUs
             sp_group_rank = get_sequence_parallel_group_rank()
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
             torch.distributed.broadcast(input_image_latent, global_src_rank, group=get_sequence_parallel_group())
 
-        generated_latents_list = [input_image_latent]    # The generated results
-        last_generated_latents = input_image_latent
-
         if cpu_offloading:
             self.vae.to("cpu")
             if not self.sequential_offload_enabled:
                 self.dit.to("cuda")
             torch.cuda.empty_cache()
+
+        #Calculate the total number of frames
+        total_frames = temp
+
+        # Preallocate the tensor for generated latents
+        generated_latents = torch.empty(
+            (batch_size, num_channels_latents, total_frames, input_image_latent.shape[3], input_image_latent.shape[4]),
+            dtype=input_image_latent.dtype,
+            device=input_image_latent.device
+        )
         
+        # Assign the input image latent to the first slice
+        generated_latents[:, :, 0:self.frame_per_unit] = input_image_latent
+   
         for unit_index in tqdm(range(1, num_units)):
             gc.collect()
             torch.cuda.empty_cache()
@@ -936,15 +951,18 @@ class PyramidDiTForVideoGeneration:
                 self._guidance_scale = guidance_scale_list[unit_index]
                 self._video_guidance_scale = guidance_scale_list[unit_index]
 
+            # Update clean_latents_list
+            current_latents = generated_latents[:, :, :unit_index * self.frame_per_unit]
+            clean_latents_list = self.get_pyramid_latent(current_latents, len(stages) - 1)
+
             # prepare the condition latents
             past_condition_latents = []
-            clean_latents_list = self.get_pyramid_latent(torch.cat(generated_latents_list, dim=2), len(stages) - 1)
             
             for i_s in range(len(stages)):
                 last_cond_latent = clean_latents_list[i_s][:,:,-self.frame_per_unit:]
-
-                stage_input = [torch.cat([last_cond_latent] * 2) if self.do_classifier_free_guidance else last_cond_latent]
-        
+                stage_input = [last_cond_latent.repeat_interleave(2, dim=0) if self.do_classifier_free_guidance else last_cond_latent]
+                
+            
                 # pad the past clean latents
                 cur_unit_num = unit_index
                 cur_stage = i_s
@@ -956,13 +974,13 @@ class PyramidDiTForVideoGeneration:
                         break
                     cur_unit_ptx += 1
                     cond_latents = clean_latents_list[cur_stage][:, :, -(cur_unit_ptx * self.frame_per_unit) : -((cur_unit_ptx - 1) * self.frame_per_unit)]
-                    stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
-
+                    stage_input.append(cond_latents.repeat_interleave(2, dim=0) if self.do_classifier_free_guidance else cond_latents)
+                    
                 if cur_stage == 0 and cur_unit_ptx < cur_unit_num:
                     cond_latents = clean_latents_list[0][:, :, :-(cur_unit_ptx * self.frame_per_unit)]
-                    stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
+                    stage_input.append(cond_latents.repeat_interleave(2, dim=0)  if self.do_classifier_free_guidance else cond_latents)
             
-                stage_input = list(reversed(stage_input))
+                stage_input.reverse()
                 past_condition_latents.append(stage_input)
 
             intermed_latents = self.generate_one_unit(
@@ -981,11 +999,18 @@ class PyramidDiTForVideoGeneration:
                 is_first_frame=False,
             )
     
-            generated_latents_list.append(intermed_latents[-1])
-            last_generated_latents = intermed_latents
+            
 
-        generated_latents = torch.cat(generated_latents_list, dim=2)
-
+            # Directly assign to the preallocated tensor
+            start_idx = unit_index * self.frame_per_unit
+            end_idx = (unit_index + 1) * self.frame_per_unit
+            generated_latents[:, :, start_idx:end_idx] = intermed_latents[-1]
+        
+        del cond_latents
+        del intermed_latents
+        del past_condition_latents
+        del stage_input
+        
         if output_type == "latent":
             image = generated_latents
         else:
@@ -994,7 +1019,10 @@ class PyramidDiTForVideoGeneration:
                     self.dit.to("cpu")
                 self.vae.to("cuda")
                 torch.cuda.empty_cache()
+                gc.collect()
+            
             image = self.decode_latent(generated_latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            del generated_latents
             if cpu_offloading:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
@@ -1120,9 +1148,6 @@ class PyramidDiTForVideoGeneration:
         num_units = 1 + (temp - 1) // self.frame_per_unit
         stages = self.stages
 
-        generated_latents_list = []    # The generated results
-        last_generated_latents = None
-
         for unit_index in tqdm(range(num_units)):
             gc.collect()
             torch.cuda.empty_cache()
@@ -1151,16 +1176,25 @@ class PyramidDiTForVideoGeneration:
                     generator,
                     is_first_frame=True,
                 )
+                
+                #allocate the entire tensor at the first step to avoid the list concatenation later:
+                generated_latents = torch.empty(
+                    (batch_size, num_channels_latents, num_units, intermed_latents[-1].shape[3], intermed_latents[-1].shape[4]),
+                    dtype=latents.dtype,
+                    device=device
+                )
             else:
                 # prepare the condition latents
                 past_condition_latents = []
-                clean_latents_list = self.get_pyramid_latent(torch.cat(generated_latents_list, dim=2), len(stages) - 1)
+                
+                current_latents = generated_latents[:, :, :unit_index * self.frame_per_unit]
+                clean_latents_list = self.get_pyramid_latent(current_latents, len(stages) - 1)
                 
                 for i_s in range(len(stages)):
                     last_cond_latent = clean_latents_list[i_s][:,:,-(self.frame_per_unit):]
 
-                    stage_input = [torch.cat([last_cond_latent] * 2) if self.do_classifier_free_guidance else last_cond_latent]
-            
+                    stage_input = [last_cond_latent.repeat_interleave(2, dim=0)  if self.do_classifier_free_guidance else last_cond_latent]
+                    
                     # pad the past clean latents
                     cur_unit_num = unit_index
                     cur_stage = i_s
@@ -1172,11 +1206,11 @@ class PyramidDiTForVideoGeneration:
                             break
                         cur_unit_ptx += 1
                         cond_latents = clean_latents_list[cur_stage][:, :, -(cur_unit_ptx * self.frame_per_unit) : -((cur_unit_ptx - 1) * self.frame_per_unit)]
-                        stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
+                        stage_input.append(cond_latents.repeat_interleave(2, dim=0)  if self.do_classifier_free_guidance else cond_latents)
 
                     if cur_stage == 0 and cur_unit_ptx < cur_unit_num:
                         cond_latents = clean_latents_list[0][:, :, :-(cur_unit_ptx * self.frame_per_unit)]
-                        stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
+                        stage_input.append(cond_latents.repeat_interleave(2, dim=0) if self.do_classifier_free_guidance else cond_latents)
                 
                     stage_input = list(reversed(stage_input))
                     past_condition_latents.append(stage_input)
@@ -1197,15 +1231,18 @@ class PyramidDiTForVideoGeneration:
                     is_first_frame=False,
                 )
 
-            generated_latents_list.append(intermed_latents[-1])
-            last_generated_latents = intermed_latents
-
-        generated_latents = torch.cat(generated_latents_list, dim=2)
-
+            start_idx = unit_index * self.frame_per_unit
+            end_idx = (unit_index + 1) * self.frame_per_unit
+            generated_latents[:, :, start_idx:end_idx] = intermed_latents[-1]
+            
         if output_type == "latent":
             image = generated_latents
         else:
             if cpu_offloading:
+                del latents
+                del stage_input
+                del intermed_latents
+                del past_condition_latents
                 if not self.sequential_offload_enabled:
                     self.dit.to("cpu")
                 self.vae.to("cuda")

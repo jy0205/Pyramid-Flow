@@ -127,7 +127,9 @@ from pyramid_dit import PyramidDiTForVideoGeneration
 from diffusers.utils import load_image, export_to_video
 
 torch.cuda.set_device(0)
-model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 (not support fp16 yet)
+# model_dtype, torch_dtype = 'bf16', torch.bfloat16   # Use bf16 for bfloat16 support
+model_dtype, torch_dtype = 'fp16', torch.float16     # Use fp16 for float16 support (requires GPU with Compute Capability >= 7.0)
+# model_dtype, torch_dtype = 'fp32', torch.float32   # Use fp32 for float32 support
 
 model = PyramidDiTForVideoGeneration(
     'PATH',                                         # The downloaded checkpoint dir
@@ -230,6 +232,7 @@ It currently supports 2 or 4 GPUs (For SD3 Version), with more configurations av
 * The `guidance_scale` parameter controls the visual quality. We suggest using a guidance within [7, 9] for the 768p checkpoint during text-to-video generation, and 7 for the 384p checkpoint.
 * The `video_guidance_scale` parameter controls the motion. A larger value increases the dynamic degree and mitigates the autoregressive generation degradation, while a smaller value stabilizes the video.
 * For 10-second video generation, we recommend using a guidance scale of 7 and a video guidance scale of 5.
+* **fp16 Support**: The model now supports `fp16` precision, which can reduce memory usage and potentially improve performance on compatible GPUs (Compute Capability >= 7.0). To use `fp16`, set `model_dtype='fp16'` when loading the model. If your GPU does not support `fp16`, the model will automatically fall back to `fp32` precision.
 
 ## Training
 

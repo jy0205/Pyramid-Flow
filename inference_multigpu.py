@@ -16,7 +16,7 @@ from PIL import Image
 def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process Script', add_help=False)
     parser.add_argument('--model_name', default='pyramid_flux', type=str, help="The model name", choices=["pyramid_flux", "pyramid_mmdit"])
-    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16")
+    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16, fp16, or fp32", choices=['bf16', 'fp16', 'fp32'])
     parser.add_argument('--model_path', default='/home/jinyang06/models/pyramid-flow', type=str, help='Set it to the downloaded checkpoint dir')
     parser.add_argument('--variant', default='diffusion_transformer_768p', type=str,)
     parser.add_argument('--task', default='t2v', type=str, choices=['i2v', 't2v'])
@@ -55,9 +55,14 @@ def main():
     model.vae.enable_tiling()
 
     if model_dtype == "bf16":
-        torch_dtype = torch.bfloat16 
+        torch_dtype = torch.bfloat16
     elif model_dtype == "fp16":
-        torch_dtype = torch.float16
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+            torch_dtype = torch.float16
+        else:
+            print(f"Warning: Rank {rank}: fp16 is not supported on this GPU. Falling back to fp32.")
+            torch_dtype = torch.float32
+            model_dtype = 'fp32' # Update model_dtype to reflect the change - handled by PyramidDiTForVideoGeneration
     else:
         torch_dtype = torch.float32
 

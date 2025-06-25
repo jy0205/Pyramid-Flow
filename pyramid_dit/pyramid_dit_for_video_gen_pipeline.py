@@ -127,10 +127,16 @@ class PyramidDiTForVideoGeneration:
         if model_dtype == 'bf16':
             torch_dtype = torch.bfloat16
         elif model_dtype == 'fp16':
-            torch_dtype = torch.float16
+            if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+                torch_dtype = torch.float16
+            else:
+                print("Warning: fp16 is not supported on this GPU. Falling back to fp32.")
+                torch_dtype = torch.float32
+                model_dtype = 'fp32' # Update model_dtype to reflect the change
         else:
             torch_dtype = torch.float32
 
+        self.model_dtype = model_dtype # Store model_dtype
         self.stages = stages
         self.sample_ratios = sample_ratios
         self.corrupt_ratio = corrupt_ratio
@@ -1264,7 +1270,12 @@ class PyramidDiTForVideoGeneration:
 
     @property
     def dtype(self):
-        return next(self.dit.parameters()).dtype
+        if self.model_dtype == 'bf16':
+            return torch.bfloat16
+        elif self.model_dtype == 'fp16':
+            return torch.float16
+        else:
+            return torch.float32
 
     @property
     def guidance_scale(self):

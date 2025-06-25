@@ -156,7 +156,7 @@ def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process Training script', add_help=False)
     parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--model_path', default='', type=str, help='The pre-trained weight path')
-    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16 or df16")
+    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16, fp16, or fp32", choices=['bf16', 'fp16', 'fp32'])
     parser.add_argument('--anno_file', type=str, default='', help="The video annotation file")
     parser.add_argument('--width', type=int, default=640, help="The video width")
     parser.add_argument('--height', type=int, default=384, help="The video height")
@@ -211,9 +211,15 @@ def main():
     model.to(device)
 
     if args.model_dtype == "bf16":
-        torch_dtype = torch.bfloat16 
+        torch_dtype = torch.bfloat16
     elif args.model_dtype == "fp16":
-        torch_dtype = torch.float16
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+            torch_dtype = torch.float16
+        else:
+            print(f"Warning: Rank {rank}: fp16 is not supported on this GPU. Falling back to fp32.")
+            torch_dtype = torch.float32
+            # model_dtype will be updated in build_model if fallback occurs,
+            # but PyramidDiTForVideoGeneration handles this internally.
     else:
         torch_dtype = torch.float32
 

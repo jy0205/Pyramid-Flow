@@ -20,7 +20,9 @@ model_cache_lock = threading.Lock()
 model_name = "pyramid_flux"    # or pyramid_mmdit
 model_repo = "rain1011/pyramid-flow-sd3" if model_name == "pyramid_mmdit" else "rain1011/pyramid-flow-miniflux"
 
-model_dtype = "bf16"                      # Support bf16 and fp32
+model_dtype = "bf16"                      # Support bf16, fp16 and fp32
+# model_dtype = "fp16"
+# model_dtype = "fp32"
 variants = {
     'high': 'diffusion_transformer_768p',  # For high-resolution version
     'low': 'diffusion_transformer_384p'    # For low-resolution version
@@ -89,6 +91,13 @@ def initialize_model(variant):
 
     if model_dtype == "bf16":
         torch_dtype_selected = torch.bfloat16
+    elif model_dtype == "fp16":
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+            torch_dtype_selected = torch.float16
+        else:
+            print("Warning: fp16 is not supported on this GPU. Falling back to fp32.")
+            torch_dtype_selected = torch.float32
+            # model_dtype = 'fp32' # Update model_dtype to reflect the change - handled by PyramidDiTForVideoGeneration
     else:
         torch_dtype_selected = torch.float32
 

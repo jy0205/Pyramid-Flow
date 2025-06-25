@@ -28,7 +28,7 @@ def get_args():
     parser = argparse.ArgumentParser('Pytorch Multi-process script', add_help=False)
     parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--anno_file', type=str, default='', help="The video annotation file")
-    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16 or df16")
+    parser.add_argument('--model_dtype', default='bf16', type=str, help="The Model Dtype: bf16, fp16, or fp32", choices=['bf16', 'fp16', 'fp32'])
     parser.add_argument('--model_name', default='pyramid_flux', type=str, help="The Model Architecture Name", choices=["pyramid_flux", "pyramid_mmdit"])
     parser.add_argument('--model_path', default='', type=str, help='The pre-trained weight path')
     return parser.parse_args()
@@ -89,7 +89,12 @@ def build_model(args):
     if model_dtype == 'bf16':
         torch_dtype = torch.bfloat16
     elif model_dtype == 'fp16':
-        torch_dtype = torch.float16
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+            torch_dtype = torch.float16
+        else:
+            print(f"Warning: Rank {args.rank}: fp16 is not supported on this GPU. Falling back to fp32.")
+            torch_dtype = torch.float32
+            model_dtype = 'fp32' # Update model_dtype to reflect the change
     else:
         torch_dtype = torch.float32
 
@@ -121,9 +126,15 @@ def main():
     model.to(device)
 
     if args.model_dtype == "bf16":
-        torch_dtype = torch.bfloat16 
+        torch_dtype = torch.bfloat16
     elif args.model_dtype == "fp16":
-        torch_dtype = torch.float16
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 7:
+            torch_dtype = torch.float16
+        else:
+            # This case should ideally be handled by the build_model function,
+            # but we add a check here for safety.
+            print(f"Warning: Rank {rank}: fp16 is not supported on this GPU. Falling back to fp32.")
+            torch_dtype = torch.float32
     else:
         torch_dtype = torch.float32
 

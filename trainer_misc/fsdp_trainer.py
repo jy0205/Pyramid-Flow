@@ -83,7 +83,11 @@ def train_one_epoch_with_fsdp(
                 # To fetch the data sample and Move the input to device
                 samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
-                text = samples['text']
+                # TemporalLengthBucketeer nests pre-computed features under
+                # ``text``.  Accept the legacy top-level feature dictionary as
+                # well; the runner performs the canonical key normalization
+                # and device migration.
+                text = samples.get('text', samples)
                 identifier = samples['identifier']
 
                 # Perform the forward using the accerlate

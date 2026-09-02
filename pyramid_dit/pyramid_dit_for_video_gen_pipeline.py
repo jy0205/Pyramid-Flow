@@ -41,6 +41,14 @@ from .flux_modules import (
     FluxTextEncoderWithMask,
 )
 
+from .text_features import (
+    TEXT_FEATURE_KEYS,
+    load_null_text_features,
+    move_text_features_to_device,
+    normalize_null_text_features,
+    prepare_text_features,
+)
+
 
 def compute_density_for_timestep_sampling(
     weighting_scheme: str, batch_size: int, logit_mean: float = None, logit_std: float = None, mode_scale: float = None
@@ -120,7 +128,8 @@ class PyramidDiTForVideoGeneration:
         return_log=True, model_variant="diffusion_transformer_768p", timestep_shift=1.0, stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=[1, 1, 1], scheduler_gamma=1/3, use_mixed_training=False, use_flash_attn=False, 
         load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
-        corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, **kwargs,
+        corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6,
+        null_text_feature_path=None, **kwargs,
     ):
         super().__init__()
 
@@ -130,6 +139,14 @@ class PyramidDiTForVideoGeneration:
             torch_dtype = torch.float16
         else:
             torch_dtype = torch.float32
+
+        # Pre-computed text features are intentionally an explicit mode.  Load
+        # and validate the null prompt before constructing the large DiT/VAE so
+        # a missing or incompatible artifact fails fast and locally.
+        self.null_text_feature_path = null_text_feature_path
+        self.null_text_embeds = None
+        if not load_text_encoder:
+            self.null_text_embeds = load_null_text_features(null_text_feature_path)
 
         self.stages = stages
         self.sample_ratios = sample_ratios
@@ -603,13 +620,43 @@ class PyramidDiTForVideoGeneration:
                     text[idx] = ''
             return self.text_encoder(text, device)   # [b s c]
         else:
-            batch_size = len(text['prompt_embeds'])
+            # TemporalLengthBucketeer returns a nested plural-keyed mapping,
+            # while older/custom loaders may still provide top-level singular
+            # keys.  Normalize both forms and move every tensor (not just the
+            # video latent) to the DiT device before the forward pass.
+            rand_idx = torch.as_tensor(rand_idx).reshape(-1)
+            batch_size = int(rand_idx.numel())
+            text = prepare_text_features(text, device=device, batch_size=batch_size)
 
-            for idx in range(batch_size):
-                if rand_idx[idx].item():
-                    text['prompt_embeds'][idx] = self.null_text_embeds['prompt_embed'].to(device)
-                    text['prompt_attention_mask'][idx] = self.null_text_embeds['prompt_attention_mask'].to(device)
-                    text['pooled_prompt_embeds'][idx] = self.null_text_embeds['pooled_prompt_embed'].to(device)
+            if self.null_text_embeds is None:
+                # This should only be reachable for objects assembled outside
+                # the constructor (for example a partially mocked runner), but
+                # keep the failure explicit instead of silently changing CFG.
+                raise RuntimeError(
+                    "null_text_embeds is unavailable; provide "
+                    "null_text_feature_path when load_text_encoder=False"
+                )
+
+            null_text = normalize_null_text_features(self.null_text_embeds)
+            null_text = move_text_features_to_device(null_text, device=device)
+            for key in TEXT_FEATURE_KEYS:
+                expected_shape = tuple(text[key].shape[1:])
+                if tuple(null_text[key].shape) != expected_shape:
+                    raise ValueError(
+                        f"Null text feature '{key}' has shape "
+                        f"{tuple(null_text[key].shape)}; expected {expected_shape} "
+                        "for the current batch"
+                    )
+
+            # Do not mutate tensors owned by a caller/cache when replacing
+            # dropped rows for classifier-free guidance.
+            if bool(torch.any(rand_idx)):
+                text = {key: value.clone() for key, value in text.items()}
+                for idx in range(batch_size):
+                    if rand_idx[idx].item():
+                        text['prompt_embeds'][idx] = null_text['prompt_embeds']
+                        text['prompt_attention_mask'][idx] = null_text['prompt_attention_mask']
+                        text['pooled_prompt_embeds'][idx] = null_text['pooled_prompt_embeds']
 
             return text['prompt_embeds'], text['prompt_attention_mask'], text['pooled_prompt_embeds']
 

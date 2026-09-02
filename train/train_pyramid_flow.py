@@ -29,6 +29,7 @@ from pyramid_dit import (
     FluxSingleTransformerBlock,
     FluxTransformerBlock,
 )
+from pyramid_dit.text_features import validate_null_text_feature_path
 
 from trainer_misc import (
     init_distributed_mode, 
@@ -110,6 +111,10 @@ def get_args():
     parser.add_argument('--interp_condition_pos', action='store_true', default=True)
     parser.add_argument('--sync_video_input', action='store_true', help="whether to sync the video input")
     parser.add_argument('--load_text_encoder', action='store_true', help="whether to load the text encoder during training")
+    parser.add_argument(
+        '--null_text_feature_path', default='', type=str,
+        help="path to a pre-computed null-prompt feature file; required when --load_text_encoder is omitted",
+    )
     parser.add_argument('--load_vae', action='store_true', help="whether to load the video vae during training")
 
     # Sequence Parallel config
@@ -218,6 +223,12 @@ def build_model_runner(args):
     model_name = args.model_name
     model_variant = args.model_variant
 
+    # Validate this before constructing the large model so a pre-computed
+    # feature run fails immediately with an actionable message.
+    null_text_feature_path = getattr(args, 'null_text_feature_path', None)
+    if not args.load_text_encoder:
+        validate_null_text_feature_path(null_text_feature_path)
+
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
     sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
     assert args.batch_size % int(sum(sample_ratios)) == 0, "The batchsize should be diivided by sum(sample_ratios)"
@@ -244,6 +255,7 @@ def build_model_runner(args):
         corrupt_ratio=args.corrupt_ratio,
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
+        null_text_feature_path=null_text_feature_path,
     )
     
     if args.dit_pretrained_weight:
@@ -297,6 +309,12 @@ def build_fsdp_plugin(args):
 
 
 def main(args):
+    # Fail before distributed/model initialization when the pre-computed text
+    # path is missing.  ``build_model_runner`` repeats this guard for callers
+    # that construct a runner directly.
+    if not args.load_text_encoder:
+        validate_null_text_feature_path(getattr(args, 'null_text_feature_path', None))
+
     logging_dir = Path(args.output_dir, args.logging_dir)
 
     accelerator_project_config = ProjectConfiguration(project_dir=args.output_dir, logging_dir=logging_dir)

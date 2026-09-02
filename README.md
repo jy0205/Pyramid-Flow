@@ -241,6 +241,14 @@ The hardware requirements for training VAE are at least 8 A100 GPUs. Please refe
 
 The hardware requirements for finetuning DiT are at least 8 A100 GPUs. Please refer to [this document](https://github.com/jy0205/Pyramid-Flow/blob/main/docs/DiT.md). We provide instructions for both autoregressive and non-autoregressive versions of Pyramid Flow. The former is more research oriented and the latter is more stable (but less efficient without temporal pyramid).
 
+When training from pre-computed text features, omit `--load_text_encoder` and
+pass `--null_text_feature_path /path/to/null_prompt.pt` to
+`train/train_pyramid_flow.py`. The file should contain the three features
+written by `tools/extract_text_features.py` for an empty prompt (a singleton
+batch is accepted). It must be produced with the same text encoder and model
+variant as the training features so classifier-free guidance remains
+consistent.
+
 ## Gallery
 
 The following video examples are generated at 5s, 768p, 24fps. For more results, please visit our [project page](https://pyramid-flow.github.io).

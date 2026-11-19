@@ -228,6 +228,7 @@ class VideoFrameProcessor:
         self.sample_fps = sample_fps
 
     def __call__(self, video_path):
+        video_capture = None
         try:
             video_capture = cv2.VideoCapture(video_path)
             fps = video_capture.get(cv2.CAP_PROP_FPS)
@@ -243,7 +244,8 @@ class VideoFrameProcessor:
                 frame = frame.permute(2, 0, 1)
                 frames.append(frame)
 
-            video_capture.release()
+            if not frames:
+                return None, None
             sample_fps = self.sample_fps
             interval = max(int(fps / sample_fps), 1)
             frames = frames[::interval]
@@ -269,6 +271,9 @@ class VideoFrameProcessor:
         except Exception as e:
             print(f"Load video: {video_path} Error, Exception {e}")
             return None, None
+        finally:
+            if video_capture is not None:
+                video_capture.release()
 
 
 class VideoDataset(Dataset):
